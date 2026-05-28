@@ -4,14 +4,19 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        gold: '#C9A84C',
-        'off-white': '#F8F8F8',
-        ink: '#1A1A1A',
-        border: '#E5E5E5',
+        blue: {
+          primary: '#1E3A8A',
+          dark: '#172554',
+          accent: '#60A5FA',
+        },
+        'off-white': '#F8FAFC',
+        subtle: '#F1F5F9',
+        border: '#E2E8F0',
+        ink: '#0F172A',
+        muted: '#64748B',
       },
-      fontFamily: {
-        sans: ['Inter', 'sans-serif'],
-      },
+      fontFamily: { sans: ['Inter', 'sans-serif'] },
+      backdropBlur: { xs: '2px' },
     },
   },
   plugins: [],

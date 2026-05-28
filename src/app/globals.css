@@ -2,37 +2,38 @@
 @tailwind components;
 @tailwind utilities;
 
-* {
-  box-sizing: border-box;
-}
+* { box-sizing: border-box; }
 
 body {
-  background-color: #ffffff;
-  color: #1A1A1A;
+  background-color: #F8FAFC;
+  color: #0F172A;
   font-family: 'Inter', sans-serif;
 }
 
-.table-cell {
-  @apply px-3 py-1.5 text-sm border-b border-r border-[#E5E5E5] whitespace-nowrap;
+/* Spreadsheet table cells */
+.th {
+  @apply px-4 py-2.5 text-xs font-semibold uppercase tracking-wider text-left text-[#64748B] bg-[#F1F5F9] border-b border-[#E2E8F0] whitespace-nowrap select-none;
+}
+.th.sortable {
+  @apply cursor-pointer hover:bg-[#E2E8F0] hover:text-[#0F172A] transition-colors;
+}
+.td {
+  @apply px-4 py-2 text-sm text-[#0F172A] border-b border-[#E2E8F0] whitespace-nowrap;
+}
+/* zebra */
+tr:nth-child(even) .td { @apply bg-[#F8FAFC]; }
+tr:nth-child(odd) .td { @apply bg-white; }
+
+.positive { color: #16A34A; }
+.negative { color: #DC2626; }
+
+/* Input style */
+.input {
+  @apply w-full border border-[#E2E8F0] rounded-lg px-3 py-2 text-sm outline-none
+         focus:ring-2 focus:ring-[#60A5FA] focus:border-[#1E3A8A] transition-colors bg-white;
 }
 
-.table-header {
-  @apply px-3 py-2 text-xs font-semibold uppercase tracking-wide text-left bg-[#F8F8F8] border-b border-r border-[#E5E5E5];
-}
-
-.editable-cell {
-  @apply cursor-pointer hover:bg-[#FFFDF5];
-}
-
-.editable-cell input,
-.editable-cell select {
-  @apply w-full bg-transparent outline-none text-sm border-0 p-0;
-}
-
-.negative {
-  color: #B91C1C;
-}
-
-.positive {
-  color: #15803D;
+/* Card */
+.card {
+  @apply bg-white rounded-xl border border-[#E2E8F0] shadow-sm;
 }

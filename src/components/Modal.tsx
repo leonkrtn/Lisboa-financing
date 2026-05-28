@@ -46,24 +46,28 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
       <div
         ref={panelRef}
         tabIndex={-1}
-        className="relative z-10 w-full max-w-lg bg-white border border-[#E5E5E5] shadow-xl outline-none"
+        className="relative z-10 w-full max-w-lg mx-4 bg-white rounded-xl shadow-2xl outline-none max-h-[90vh] flex flex-col"
       >
-        {/* Title bar */}
-        <div className="flex items-center justify-between px-5 py-4 border-b border-[#E5E5E5]">
-          <h2 id="modal-title" className="text-base font-semibold text-[#1A1A1A]">
+        {/* Header */}
+        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E2E8F0] shrink-0">
+          <h2 id="modal-title" className="text-lg font-semibold text-[#0F172A]">
             {title}
           </h2>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-[#1A1A1A] transition-colors text-xl leading-none"
+            className="w-8 h-8 flex items-center justify-center rounded-lg text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9] transition-colors"
             aria-label="Close modal"
           >
-            ×
+            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+              <path d="M2 2l12 12M14 2L2 14" />
+            </svg>
           </button>
         </div>
 
-        {/* Content */}
-        <div className="px-5 py-4">{children}</div>
+        {/* Scrollable content */}
+        <div className="px-6 py-5 overflow-y-auto">
+          {children}
+        </div>
       </div>
     </div>
   )

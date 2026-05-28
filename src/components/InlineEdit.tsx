@@ -70,13 +70,13 @@ export default function InlineEdit({
   if (type === 'boolean') {
     return (
       <div
-        className={`editable-cell flex items-center gap-2 ${className}`}
+        className={`flex items-center gap-2 cursor-pointer hover:bg-[#EFF6FF] transition-colors rounded ${className}`}
         onClick={handleClick}
         title="Click to toggle"
       >
         <span
-          className={`inline-flex w-4 h-4 rounded border items-center justify-center ${
-            value ? 'bg-[#C9A84C] border-[#C9A84C] text-white' : 'border-[#E5E5E5]'
+          className={`inline-flex w-4 h-4 rounded border items-center justify-center transition-colors ${
+            value ? 'bg-[#1E3A8A] border-[#1E3A8A] text-white' : 'border-[#E2E8F0] bg-white'
           }`}
         >
           {value ? (
@@ -91,21 +91,21 @@ export default function InlineEdit({
             </svg>
           ) : null}
         </span>
-        <span className="text-sm text-[#1A1A1A]">{value ? 'Yes' : 'No'}</span>
+        <span className="text-sm text-[#0F172A]">{value ? 'Yes' : 'No'}</span>
       </div>
     )
   }
 
   if (editing && type === 'select') {
     return (
-      <div className={`editable-cell border-b-2 border-[#C9A84C] ${className}`}>
+      <div className={`border-b-2 border-[#1E3A8A] ${className}`}>
         <select
           ref={selectRef}
           value={draft}
           onChange={e => setDraft(e.target.value)}
           onBlur={handleSave}
           onKeyDown={handleKeyDown}
-          className="w-full bg-transparent outline-none text-sm border-0 p-0"
+          className="w-full bg-transparent outline-none text-sm border-0 p-0 text-[#0F172A]"
         >
           <option value="">—</option>
           {options.map(opt => (
@@ -120,7 +120,7 @@ export default function InlineEdit({
 
   if (editing) {
     return (
-      <div className={`editable-cell border-b-2 border-[#C9A84C] ${className}`}>
+      <div className={`border-b-2 border-[#1E3A8A] ${className}`}>
         <input
           ref={inputRef}
           type={type === 'number' ? 'number' : 'text'}
@@ -128,7 +128,7 @@ export default function InlineEdit({
           onChange={e => setDraft(e.target.value)}
           onBlur={handleSave}
           onKeyDown={handleKeyDown}
-          className="w-full bg-transparent outline-none text-sm border-0 p-0"
+          className="w-full bg-transparent outline-none text-sm border-0 p-0 text-[#0F172A]"
         />
       </div>
     )
@@ -136,11 +136,11 @@ export default function InlineEdit({
 
   return (
     <div
-      className={`editable-cell ${className}`}
+      className={`cursor-pointer hover:bg-[#EFF6FF] transition-colors rounded ${className}`}
       onClick={handleClick}
       title="Click to edit"
     >
-      <span className="text-sm">{displayValue()}</span>
+      <span className="text-sm text-[#0F172A]">{displayValue()}</span>
     </div>
   )
 }
