@@ -61,7 +61,6 @@ export interface CalculatedMonth {
   rent: number
   food: number
   fun: number
-  gym_transport: number
   insurance: number
   flights: number
   other: number

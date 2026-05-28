@@ -32,7 +32,7 @@ export default function OverviewPage() {
     months.length > 0
       ? months.reduce(
           (s, m) =>
-            s + m.rent + m.food + m.fun + m.other + m.insurance + m.flights + m.gym_transport,
+            s + m.rent + m.food + m.fun + m.other + m.insurance + m.flights,
           0
         ) / months.length
       : 0
