@@ -46,7 +46,7 @@ export default function Sidebar() {
 
       {/* Mobile dropdown panel */}
       {open && (
-        <div className="md:hidden fixed top-0 left-0 right-0 z-45 bg-white border-b border-[#E2E8F0] shadow-lg pt-14 pb-3" style={{ zIndex: 45 }}>
+        <div className="md:hidden fixed top-0 left-0 right-0 bg-white border-b border-[#E2E8F0] shadow-lg pt-14 pb-3" style={{ zIndex: 45 }}>
           {navItems.map(item => {
             const isActive = pathname === item.href || pathname.startsWith(item.href + '/')
             return (

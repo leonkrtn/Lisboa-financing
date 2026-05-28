@@ -38,6 +38,12 @@ function calcEffectiveAmount(item: BalanceItem, internships: Internship[]): numb
 
 const CATEGORIES: BalanceItem['category'][] = ['Cash', 'Receivables', 'Provision']
 
+const categoryBadge: Record<BalanceItem['category'], string> = {
+  Cash: 'bg-[#DCFCE7] text-[#16A34A]',
+  Receivables: 'bg-[#DBEAFE] text-[#1E3A8A]',
+  Provision: 'bg-[#FEF3C7] text-[#D97706]',
+}
+
 export default function BalancePage() {
   const [items, setItems] = useState<BalanceItem[]>([])
   const [internships, setInternships] = useState<Internship[]>([])
@@ -145,8 +151,8 @@ export default function BalancePage() {
   if (loading) {
     return (
       <div className="p-6 md:p-8">
-        <h1 className="text-xl font-bold text-[#1A1A1A] mb-6">Balance</h1>
-        <div className="border border-[#E5E5E5] h-48 bg-[#F8F8F8] animate-pulse" />
+        <h1 className="text-2xl font-bold text-[#0F172A] mb-6">Balance</h1>
+        <div className="card h-48 animate-pulse bg-[#F1F5F9]" />
       </div>
     )
   }
@@ -154,114 +160,131 @@ export default function BalancePage() {
   return (
     <div className="p-6 md:p-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-[#1A1A1A]">Balance</h1>
+        <h1 className="text-2xl font-bold text-[#0F172A]">Balance</h1>
         <button
           onClick={openAdd}
-          className="bg-[#C9A84C] text-white px-4 py-1.5 text-sm font-medium hover:bg-[#b8953f] transition-colors"
+          className="bg-[#1E3A8A] text-white hover:bg-[#172554] rounded-lg px-4 py-2 text-sm font-medium transition-colors"
         >
           + Add
         </button>
       </div>
 
-      {error && <div className="text-red-600 text-sm mb-4">{error}</div>}
+      {error && (
+        <div className="text-[#DC2626] text-sm bg-[#FEF2F2] border border-red-200 rounded-lg px-4 py-3 mb-4">
+          {error}
+        </div>
+      )}
 
       {/* Grouped by category */}
       {CATEGORIES.map(cat => {
         const catItems = items.filter(i => i.category === cat)
         if (catItems.length === 0) return null
         return (
-          <div key={cat} className="mb-6 border border-[#E5E5E5]">
-            <div className="px-4 py-2 bg-[#F8F8F8] border-b border-[#E5E5E5]">
-              <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">{cat}</span>
+          <div key={cat} className="card overflow-hidden mb-5">
+            <div className="px-5 py-3 bg-[#F8FAFC] border-b border-[#E2E8F0] flex items-center gap-3">
+              <span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${categoryBadge[cat]}`}>
+                {cat}
+              </span>
             </div>
-            <table className="w-full border-collapse">
-              <thead>
-                <tr>
-                  <th className="table-header">Name</th>
-                  <th className="table-header">Dir</th>
-                  <th className="table-header text-right">Amount</th>
-                  <th className="table-header">Internship</th>
-                  <th className="table-header text-right">Effective</th>
-                  <th className="table-header" style={{ width: 100 }} />
-                </tr>
-              </thead>
-              <tbody>
-                {catItems.map(item => {
-                  const effective = calcEffectiveAmount(item, internships)
-                  const linkedInternship = item.internship_id
-                    ? internships.find(i => i.id === item.internship_id)
-                    : null
-                  return (
-                    <tr key={item.id}>
-                      <td className="table-cell font-medium">{item.name}</td>
-                      <td className="table-cell">
-                        <span
-                          className={`font-bold text-base ${item.direction === '+' ? 'positive' : 'negative'}`}
-                        >
-                          {item.direction}
-                        </span>
-                      </td>
-                      <td className="table-cell text-right">€ {fmt(item.amount)}</td>
-                      <td className="table-cell text-gray-500 text-xs">
-                        {linkedInternship ? linkedInternship.name : '—'}
-                      </td>
-                      <td className={`table-cell text-right font-medium ${item.direction === '+' ? 'positive' : 'negative'}`}>
-                        {item.direction === '+' ? '+' : '-'}€ {fmt(effective)}
-                      </td>
-                      <td className="table-cell">
-                        <div className="flex gap-2">
-                          <button
-                            onClick={() => openEdit(item)}
-                            className="text-xs text-[#C9A84C] hover:underline"
+            <div className="overflow-x-auto">
+              <table className="w-full border-collapse">
+                <thead>
+                  <tr>
+                    <th className="th">Name</th>
+                    <th className="th">Direction</th>
+                    <th className="th text-right">Amount</th>
+                    <th className="th">Internship</th>
+                    <th className="th text-right">Effective</th>
+                    <th className="th" style={{ width: 110 }} />
+                  </tr>
+                </thead>
+                <tbody>
+                  {catItems.map(item => {
+                    const effective = calcEffectiveAmount(item, internships)
+                    const linkedInternship = item.internship_id
+                      ? internships.find(i => i.id === item.internship_id)
+                      : null
+                    return (
+                      <tr key={item.id}>
+                        <td className="td font-medium">{item.name}</td>
+                        <td className="td">
+                          <span
+                            className={`inline-flex items-center justify-center w-7 h-7 rounded-full text-sm font-bold ${
+                              item.direction === '+'
+                                ? 'bg-[#DCFCE7] text-[#16A34A]'
+                                : 'bg-[#FEE2E2] text-[#DC2626]'
+                            }`}
                           >
-                            Edit
-                          </button>
-                          {deleteConfirm === item.id ? (
-                            <>
-                              <button
-                                onClick={() => handleDelete(item.id)}
-                                className="text-xs text-white bg-red-600 px-1.5 py-0.5 hover:bg-red-700"
-                              >
-                                Yes
-                              </button>
-                              <button
-                                onClick={() => setDeleteConfirm(null)}
-                                className="text-xs text-gray-500"
-                              >
-                                No
-                              </button>
-                            </>
-                          ) : (
+                            {item.direction}
+                          </span>
+                        </td>
+                        <td className="td text-right">€ {fmt(item.amount)}</td>
+                        <td className="td text-[#64748B] text-xs">
+                          {linkedInternship ? linkedInternship.name : '—'}
+                        </td>
+                        <td className={`td text-right font-semibold ${item.direction === '+' ? 'positive' : 'negative'}`}>
+                          {item.direction === '+' ? '+' : '−'}€ {fmt(effective)}
+                        </td>
+                        <td className="td">
+                          <div className="flex gap-2 items-center">
                             <button
-                              onClick={() => setDeleteConfirm(item.id)}
-                              className="text-xs text-red-500 hover:text-red-700"
+                              onClick={() => openEdit(item)}
+                              className="border border-[#E2E8F0] text-[#0F172A] hover:bg-[#F1F5F9] rounded px-2 py-0.5 text-xs transition-colors"
                             >
-                              Delete
+                              Edit
                             </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
+                            {deleteConfirm === item.id ? (
+                              <>
+                                <button
+                                  onClick={() => handleDelete(item.id)}
+                                  className="text-xs text-white bg-[#DC2626] px-2 py-0.5 rounded hover:bg-red-700 transition-colors"
+                                >
+                                  Yes
+                                </button>
+                                <button
+                                  onClick={() => setDeleteConfirm(null)}
+                                  className="text-xs text-[#64748B] px-2 py-0.5 rounded hover:bg-[#F1F5F9] transition-colors"
+                                >
+                                  No
+                                </button>
+                              </>
+                            ) : (
+                              <button
+                                onClick={() => setDeleteConfirm(item.id)}
+                                className="text-[#DC2626] hover:text-red-800 text-xs transition-colors"
+                              >
+                                Delete
+                              </button>
+                            )}
+                          </div>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
           </div>
         )
       })}
 
       {items.length === 0 && (
-        <div className="border border-[#E5E5E5] p-8 text-center text-gray-400 text-sm">
+        <div className="card p-8 text-center text-[#64748B] text-sm">
           No balance items yet. Click &ldquo;+ Add&rdquo; to create one.
         </div>
       )}
 
       {/* Initial Savings Total */}
-      <div className="mt-6 border border-[#E5E5E5] p-4 flex items-center justify-between">
-        <span className="text-sm font-semibold text-[#1A1A1A]">Initial Savings (sum of all items)</span>
-        <span className={`text-lg font-bold ${initialSavings >= 0 ? 'positive' : 'negative'}`}>
-          {initialSavings >= 0 ? '+' : ''}€ {fmt(initialSavings)}
-        </span>
+      <div className="card mt-4 p-5 bg-gradient-to-r from-[#1E3A8A] to-[#1d4ed8] border-0">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-xs font-semibold uppercase tracking-wide text-blue-200">Initial Savings</div>
+            <div className="text-sm text-white/70 mt-0.5">Sum of all balance items</div>
+          </div>
+          <span className={`text-2xl font-bold ${initialSavings >= 0 ? 'text-[#86EFAC]' : 'text-[#FCA5A5]'}`}>
+            {initialSavings >= 0 ? '+' : '−'}€ {fmt(Math.abs(initialSavings))}
+          </span>
+        </div>
       </div>
 
       {/* Modal */}
@@ -272,23 +295,23 @@ export default function BalancePage() {
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm text-[#1A1A1A] mb-1">Name</label>
+            <label className="block text-sm font-medium text-[#0F172A] mb-1.5">Name</label>
             <input
               type="text"
               value={form.name}
               onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
               placeholder="e.g. Savings Account"
-              className="w-full border border-[#E5E5E5] px-3 py-2 text-sm outline-none focus:border-[#C9A84C]"
+              className="input"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-[#1A1A1A] mb-1">Category</label>
+              <label className="block text-sm font-medium text-[#0F172A] mb-1.5">Category</label>
               <select
                 value={form.category}
                 onChange={e => setForm(prev => ({ ...prev, category: e.target.value }))}
-                className="w-full border border-[#E5E5E5] px-3 py-2 text-sm outline-none focus:border-[#C9A84C]"
+                className="input"
               >
                 {CATEGORIES.map(c => (
                   <option key={c} value={c}>{c}</option>
@@ -296,11 +319,11 @@ export default function BalancePage() {
               </select>
             </div>
             <div>
-              <label className="block text-sm text-[#1A1A1A] mb-1">Direction</label>
+              <label className="block text-sm font-medium text-[#0F172A] mb-1.5">Direction</label>
               <select
                 value={form.direction}
                 onChange={e => setForm(prev => ({ ...prev, direction: e.target.value }))}
-                className="w-full border border-[#E5E5E5] px-3 py-2 text-sm outline-none focus:border-[#C9A84C]"
+                className="input"
               >
                 <option value="+">+ (Asset)</option>
                 <option value="-">- (Liability)</option>
@@ -309,25 +332,25 @@ export default function BalancePage() {
           </div>
 
           <div>
-            <label className="block text-sm text-[#1A1A1A] mb-1">Amount (€)</label>
+            <label className="block text-sm font-medium text-[#0F172A] mb-1.5">Amount (€)</label>
             <input
               type="number"
               value={form.amount}
               onChange={e => setForm(prev => ({ ...prev, amount: e.target.value }))}
               placeholder="0"
-              className="w-full border border-[#E5E5E5] px-3 py-2 text-sm outline-none focus:border-[#C9A84C]"
+              className="input"
             />
-            <p className="text-xs text-gray-400 mt-1">
-              If linked to an internship, this field is ignored and net_salary × duration is used instead.
+            <p className="text-xs text-[#64748B] mt-1.5">
+              If linked to an internship, this field is ignored — net_salary × duration is used instead.
             </p>
           </div>
 
           <div>
-            <label className="block text-sm text-[#1A1A1A] mb-1">Link to Internship (optional)</label>
+            <label className="block text-sm font-medium text-[#0F172A] mb-1.5">Link to Internship (optional)</label>
             <select
               value={form.internship_id}
               onChange={e => setForm(prev => ({ ...prev, internship_id: e.target.value }))}
-              className="w-full border border-[#E5E5E5] px-3 py-2 text-sm outline-none focus:border-[#C9A84C]"
+              className="input"
             >
               <option value="">— None —</option>
               {internships.map(intern => (
@@ -339,7 +362,7 @@ export default function BalancePage() {
           </div>
 
           {formError && (
-            <div className="text-red-600 text-sm bg-red-50 border border-red-200 px-3 py-2">
+            <div className="text-[#DC2626] text-sm bg-[#FEF2F2] border border-red-200 rounded-lg px-4 py-3">
               {formError}
             </div>
           )}
@@ -348,14 +371,14 @@ export default function BalancePage() {
             <button
               type="button"
               onClick={() => { setModalOpen(false); setFormError(null) }}
-              className="text-sm text-gray-500 px-4 py-2 hover:bg-[#F8F8F8]"
+              className="border border-[#E2E8F0] text-[#0F172A] hover:bg-[#F1F5F9] rounded-lg px-4 py-2 text-sm transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="bg-[#C9A84C] text-white px-5 py-2 text-sm font-medium hover:bg-[#b8953f] disabled:opacity-60"
+              className="bg-[#1E3A8A] text-white hover:bg-[#172554] rounded-lg px-5 py-2 text-sm font-medium transition-colors disabled:opacity-60"
             >
               {saving ? 'Saving...' : editingId ? 'Save Changes' : 'Add'}
             </button>

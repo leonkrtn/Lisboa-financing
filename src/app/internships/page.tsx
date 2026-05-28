@@ -63,7 +63,6 @@ function calcDurationMonths(intern: Internship): number {
 
 function getPartialMonths(intern: Internship): { label: string; ratio: number }[] {
   const start = new Date(intern.start_date)
-  const end = new Date(intern.end_date)
   const startStr =
     start.getFullYear() + '-' + String(start.getMonth() + 1).padStart(2, '0') + '-01'
   const months = generateMonthDates(startStr, calcDurationMonths(intern))
@@ -172,8 +171,8 @@ export default function InternshipsPage() {
   if (loading) {
     return (
       <div className="p-6 md:p-8">
-        <h1 className="text-xl font-bold text-[#1A1A1A] mb-6">Internships</h1>
-        <div className="border border-[#E5E5E5] h-48 bg-[#F8F8F8] animate-pulse" />
+        <h1 className="text-2xl font-bold text-[#0F172A] mb-6">Internships</h1>
+        <div className="card h-48 animate-pulse bg-[#F1F5F9]" />
       </div>
     )
   }
@@ -181,19 +180,23 @@ export default function InternshipsPage() {
   return (
     <div className="p-6 md:p-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-[#1A1A1A]">Internships</h1>
+        <h1 className="text-2xl font-bold text-[#0F172A]">Internships</h1>
         <button
           onClick={openAdd}
-          className="bg-[#C9A84C] text-white px-4 py-1.5 text-sm font-medium hover:bg-[#b8953f] transition-colors"
+          className="bg-[#1E3A8A] text-white hover:bg-[#172554] rounded-lg px-4 py-2 text-sm font-medium transition-colors"
         >
           + Add
         </button>
       </div>
 
-      {error && <div className="text-red-600 text-sm mb-4">{error}</div>}
+      {error && (
+        <div className="text-[#DC2626] text-sm bg-[#FEF2F2] border border-red-200 rounded-lg px-4 py-3 mb-4">
+          {error}
+        </div>
+      )}
 
       {internships.length === 0 ? (
-        <div className="border border-[#E5E5E5] p-8 text-center text-gray-400 text-sm">
+        <div className="card p-8 text-center text-[#64748B] text-sm">
           No internships yet. Click &ldquo;+ Add&rdquo; to create one.
         </div>
       ) : (
@@ -203,19 +206,19 @@ export default function InternshipsPage() {
             const partialMonths = getPartialMonths(intern)
 
             return (
-              <div key={intern.id} className="border border-[#E5E5E5]">
+              <div key={intern.id} className="card overflow-hidden">
                 {/* Header */}
-                <div className="flex items-center justify-between px-4 py-3 bg-blue-50 border-b border-[#E5E5E5]">
+                <div className="flex items-center justify-between px-5 py-4 bg-gradient-to-r from-[#1E3A8A] to-[#1d4ed8]">
                   <div>
-                    <span className="font-semibold text-[#1A1A1A]">{intern.name}</span>
-                    <span className="ml-3 text-sm text-gray-500">
-                      {intern.start_date} → {intern.end_date} ({duration} month{duration !== 1 ? 's' : ''})
-                    </span>
+                    <div className="font-semibold text-white text-base">{intern.name}</div>
+                    <div className="text-sm text-blue-200 mt-0.5">
+                      {intern.start_date} → {intern.end_date} &nbsp;·&nbsp; {duration} month{duration !== 1 ? 's' : ''}
+                    </div>
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => openEdit(intern)}
-                      className="text-xs text-[#C9A84C] hover:underline"
+                      className="border border-white/30 text-white hover:bg-white/10 rounded-lg px-3 py-1.5 text-sm transition-colors"
                     >
                       Edit
                     </button>
@@ -223,13 +226,13 @@ export default function InternshipsPage() {
                       <>
                         <button
                           onClick={() => handleDelete(intern.id)}
-                          className="text-xs text-white bg-red-600 px-2 py-0.5 hover:bg-red-700"
+                          className="bg-[#DC2626] text-white px-3 py-1.5 rounded-lg text-sm hover:bg-red-700 transition-colors"
                         >
                           Confirm Delete
                         </button>
                         <button
                           onClick={() => setDeleteConfirm(null)}
-                          className="text-xs text-gray-500 hover:bg-[#F8F8F8] px-2"
+                          className="border border-white/30 text-white hover:bg-white/10 rounded-lg px-3 py-1.5 text-sm transition-colors"
                         >
                           Cancel
                         </button>
@@ -237,7 +240,7 @@ export default function InternshipsPage() {
                     ) : (
                       <button
                         onClick={() => setDeleteConfirm(intern.id)}
-                        className="text-xs text-red-500 hover:text-red-700"
+                        className="border border-red-300/50 text-red-200 hover:bg-red-900/30 rounded-lg px-3 py-1.5 text-sm transition-colors"
                       >
                         Delete
                       </button>
@@ -245,49 +248,49 @@ export default function InternshipsPage() {
                   </div>
                 </div>
 
-                {/* Details */}
+                {/* Details table */}
                 <div className="overflow-x-auto">
                   <table className="w-full border-collapse">
                     <thead>
                       <tr>
-                        <th className="table-header">Rent</th>
-                        <th className="table-header">Food</th>
-                        <th className="table-header">Fun</th>
-                        <th className="table-header">Gym</th>
-                        <th className="table-header">Transport</th>
-                        <th className="table-header">Gross Salary</th>
-                        <th className="table-header">Net Salary</th>
-                        <th className="table-header">Support Papa</th>
-                        <th className="table-header">Support Mama</th>
+                        <th className="th">Rent</th>
+                        <th className="th">Food</th>
+                        <th className="th">Fun</th>
+                        <th className="th">Gym</th>
+                        <th className="th">Transport</th>
+                        <th className="th">Gross Salary</th>
+                        <th className="th">Net Salary</th>
+                        <th className="th">Support Papa</th>
+                        <th className="th">Support Mama</th>
                       </tr>
                     </thead>
                     <tbody>
                       <tr>
-                        <td className="table-cell">€ {fmt(intern.rent)}</td>
-                        <td className="table-cell">€ {fmt(intern.food)}</td>
-                        <td className="table-cell">€ {fmt(intern.fun)}</td>
-                        <td className="table-cell">€ {fmt(intern.gym)}</td>
-                        <td className="table-cell">€ {fmt(intern.transport)}</td>
-                        <td className="table-cell">€ {fmt(intern.gross_salary)}</td>
-                        <td className="table-cell positive font-medium">€ {fmt(intern.net_salary)}</td>
-                        <td className="table-cell">€ {fmt(intern.support_papa)}</td>
-                        <td className="table-cell">€ {fmt(intern.support_mama)}</td>
+                        <td className="td">€ {fmt(intern.rent)}</td>
+                        <td className="td">€ {fmt(intern.food)}</td>
+                        <td className="td">€ {fmt(intern.fun)}</td>
+                        <td className="td">€ {fmt(intern.gym)}</td>
+                        <td className="td">€ {fmt(intern.transport)}</td>
+                        <td className="td">€ {fmt(intern.gross_salary)}</td>
+                        <td className="td positive font-semibold">€ {fmt(intern.net_salary)}</td>
+                        <td className="td">€ {fmt(intern.support_papa)}</td>
+                        <td className="td">€ {fmt(intern.support_mama)}</td>
                       </tr>
                     </tbody>
                   </table>
                 </div>
 
-                {/* Partial months */}
+                {/* Prorata badges */}
                 {partialMonths.length > 0 && (
-                  <div className="px-4 py-3 border-t border-[#E5E5E5] bg-[#F8F8F8]">
-                    <div className="text-xs font-semibold text-gray-500 mb-2 uppercase tracking-wide">
+                  <div className="px-5 py-3 border-t border-[#E2E8F0] bg-[#F8FAFC]">
+                    <div className="text-xs font-semibold text-[#64748B] mb-2 uppercase tracking-wide">
                       Prorata months
                     </div>
-                    <div className="flex gap-3 flex-wrap">
+                    <div className="flex gap-2 flex-wrap">
                       {partialMonths.map(pm => (
                         <span
                           key={pm.label}
-                          className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded"
+                          className="text-xs bg-[#EFF6FF] text-[#1E3A8A] px-2.5 py-1 rounded-full font-medium"
                         >
                           {pm.label}: {(pm.ratio * 100).toFixed(0)}%
                         </span>
@@ -309,32 +312,32 @@ export default function InternshipsPage() {
       >
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm text-[#1A1A1A] mb-1">Name</label>
+            <label className="block text-sm font-medium text-[#0F172A] mb-1.5">Name</label>
             <input
               type="text"
               value={form.name}
               onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
               placeholder="e.g. Internship Paris"
-              className="w-full border border-[#E5E5E5] px-3 py-2 text-sm outline-none focus:border-[#C9A84C]"
+              className="input"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-[#1A1A1A] mb-1">Start Date</label>
+              <label className="block text-sm font-medium text-[#0F172A] mb-1.5">Start Date</label>
               <input
                 type="date"
                 value={form.start_date}
                 onChange={e => setForm(prev => ({ ...prev, start_date: e.target.value }))}
-                className="w-full border border-[#E5E5E5] px-3 py-2 text-sm outline-none focus:border-[#C9A84C]"
+                className="input"
               />
             </div>
             <div>
-              <label className="block text-sm text-[#1A1A1A] mb-1">End Date</label>
+              <label className="block text-sm font-medium text-[#0F172A] mb-1.5">End Date</label>
               <input
                 type="date"
                 value={form.end_date}
                 onChange={e => setForm(prev => ({ ...prev, end_date: e.target.value }))}
-                className="w-full border border-[#E5E5E5] px-3 py-2 text-sm outline-none focus:border-[#C9A84C]"
+                className="input"
               />
             </div>
           </div>
@@ -355,7 +358,7 @@ export default function InternshipsPage() {
           </div>
 
           {formError && (
-            <div className="text-red-600 text-sm bg-red-50 border border-red-200 px-3 py-2">
+            <div className="text-[#DC2626] text-sm bg-[#FEF2F2] border border-red-200 rounded-lg px-4 py-3">
               {formError}
             </div>
           )}
@@ -364,14 +367,14 @@ export default function InternshipsPage() {
             <button
               type="button"
               onClick={() => { setModalOpen(false); setFormError(null) }}
-              className="text-sm text-gray-500 px-4 py-2 hover:bg-[#F8F8F8]"
+              className="border border-[#E2E8F0] text-[#0F172A] hover:bg-[#F1F5F9] rounded-lg px-4 py-2 text-sm transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="bg-[#C9A84C] text-white px-5 py-2 text-sm font-medium hover:bg-[#b8953f] disabled:opacity-60"
+              className="bg-[#1E3A8A] text-white hover:bg-[#172554] rounded-lg px-5 py-2 text-sm font-medium transition-colors disabled:opacity-60"
             >
               {saving ? 'Saving...' : editingId ? 'Save Changes' : 'Add'}
             </button>
@@ -393,13 +396,13 @@ function NumberField({
 }) {
   return (
     <div>
-      <label className="block text-xs text-gray-500 mb-1">{label}</label>
+      <label className="block text-xs font-medium text-[#64748B] mb-1">{label}</label>
       <input
         type="number"
         value={value}
         onChange={e => onChange(e.target.value)}
         placeholder="0"
-        className="w-full border border-[#E5E5E5] px-3 py-1.5 text-sm outline-none focus:border-[#C9A84C]"
+        className="input"
       />
     </div>
   )

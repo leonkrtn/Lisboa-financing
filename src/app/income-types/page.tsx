@@ -104,8 +104,8 @@ export default function IncomeTypesPage() {
   if (loading) {
     return (
       <div className="p-6 md:p-8">
-        <h1 className="text-xl font-bold text-[#1A1A1A] mb-6">Income Types</h1>
-        <div className="border border-[#E5E5E5] h-48 bg-[#F8F8F8] animate-pulse" />
+        <h1 className="text-2xl font-bold text-[#0F172A] mb-6">Income Types</h1>
+        <div className="card h-48 animate-pulse bg-[#F1F5F9]" />
       </div>
     )
   }
@@ -113,104 +113,110 @@ export default function IncomeTypesPage() {
   return (
     <div className="p-6 md:p-8">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-xl font-bold text-[#1A1A1A]">Income Types</h1>
+        <h1 className="text-2xl font-bold text-[#0F172A]">Income Types</h1>
         <button
           onClick={() => { setForm(emptyForm); setFormError(null); setModalOpen(true) }}
-          className="bg-[#C9A84C] text-white px-4 py-1.5 text-sm font-medium hover:bg-[#b8953f] transition-colors"
+          className="bg-[#1E3A8A] text-white hover:bg-[#172554] rounded-lg px-4 py-2 text-sm font-medium transition-colors"
         >
           + Add
         </button>
       </div>
 
-      {error && <div className="text-red-600 text-sm mb-4">{error}</div>}
+      {error && (
+        <div className="text-[#DC2626] text-sm bg-[#FEF2F2] border border-red-200 rounded-lg px-4 py-3 mb-4">
+          {error}
+        </div>
+      )}
 
       {incomeTypes.length === 0 ? (
-        <div className="border border-[#E5E5E5] p-8 text-center text-gray-400 text-sm">
+        <div className="card p-8 text-center text-[#64748B] text-sm">
           No income types yet. Click &ldquo;+ Add&rdquo; to create one.
         </div>
       ) : (
-        <div className="border border-[#E5E5E5] overflow-x-auto">
-          <table className="w-full border-collapse">
-            <thead>
-              <tr>
-                <th className="table-header">Name</th>
-                <th className="table-header text-right">Hours/Week</th>
-                <th className="table-header text-right">Salary/Hour</th>
-                <th className="table-header text-right">Tax Rate</th>
-                <th className="table-header text-right">Monthly Net</th>
-                <th className="table-header" style={{ width: 60 }} />
-              </tr>
-            </thead>
-            <tbody>
-              {incomeTypes.map(it => (
-                <tr key={it.id}>
-                  <td className="table-cell editable-cell p-0">
-                    <InlineEdit
-                      value={it.name}
-                      type="text"
-                      onSave={v => handlePatch(it.id, 'name', v)}
-                      className="px-3 py-1.5"
-                    />
-                  </td>
-                  <td className="table-cell editable-cell p-0 text-right">
-                    <InlineEdit
-                      value={it.hours_per_week}
-                      type="number"
-                      onSave={v => handlePatch(it.id, 'hours_per_week', v)}
-                      className="px-3 py-1.5 text-right"
-                      format={v => String(v)}
-                    />
-                  </td>
-                  <td className="table-cell editable-cell p-0 text-right">
-                    <InlineEdit
-                      value={it.salary_per_hour}
-                      type="number"
-                      onSave={v => handlePatch(it.id, 'salary_per_hour', v)}
-                      className="px-3 py-1.5 text-right"
-                      format={v => `€ ${fmt(Number(v))}`}
-                    />
-                  </td>
-                  <td className="table-cell editable-cell p-0 text-right">
-                    <InlineEdit
-                      value={it.tax_rate}
-                      type="number"
-                      onSave={v => handlePatch(it.id, 'tax_rate', v)}
-                      className="px-3 py-1.5 text-right"
-                      format={v => `${(Number(v) * 100).toFixed(0)}%`}
-                    />
-                  </td>
-                  <td className="table-cell text-right font-medium positive">
-                    € {fmt(calcMonthlyNet(it))}
-                  </td>
-                  <td className="table-cell">
-                    {deleteConfirm === it.id ? (
-                      <div className="flex gap-1">
-                        <button
-                          onClick={() => handleDelete(it.id)}
-                          className="text-xs text-white bg-red-600 px-2 py-0.5 hover:bg-red-700"
-                        >
-                          Yes
-                        </button>
-                        <button
-                          onClick={() => setDeleteConfirm(null)}
-                          className="text-xs text-gray-600 px-2 py-0.5 hover:bg-[#F8F8F8]"
-                        >
-                          No
-                        </button>
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => setDeleteConfirm(it.id)}
-                        className="text-xs text-red-500 hover:text-red-700"
-                      >
-                        Delete
-                      </button>
-                    )}
-                  </td>
+        <div className="card overflow-hidden">
+          <div className="overflow-x-auto">
+            <table className="w-full border-collapse">
+              <thead>
+                <tr>
+                  <th className="th">Name</th>
+                  <th className="th text-right">Hours/Week</th>
+                  <th className="th text-right">Salary/Hour</th>
+                  <th className="th text-right">Tax Rate</th>
+                  <th className="th text-right">Monthly Net</th>
+                  <th className="th" style={{ width: 80 }} />
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {incomeTypes.map(it => (
+                  <tr key={it.id}>
+                    <td className="td p-0 hover:bg-[#EFF6FF]">
+                      <InlineEdit
+                        value={it.name}
+                        type="text"
+                        onSave={v => handlePatch(it.id, 'name', v)}
+                        className="px-4 py-2"
+                      />
+                    </td>
+                    <td className="td p-0 hover:bg-[#EFF6FF] text-right">
+                      <InlineEdit
+                        value={it.hours_per_week}
+                        type="number"
+                        onSave={v => handlePatch(it.id, 'hours_per_week', v)}
+                        className="px-4 py-2 text-right"
+                        format={v => String(v)}
+                      />
+                    </td>
+                    <td className="td p-0 hover:bg-[#EFF6FF] text-right">
+                      <InlineEdit
+                        value={it.salary_per_hour}
+                        type="number"
+                        onSave={v => handlePatch(it.id, 'salary_per_hour', v)}
+                        className="px-4 py-2 text-right"
+                        format={v => `€ ${fmt(Number(v))}`}
+                      />
+                    </td>
+                    <td className="td p-0 hover:bg-[#EFF6FF] text-right">
+                      <InlineEdit
+                        value={it.tax_rate}
+                        type="number"
+                        onSave={v => handlePatch(it.id, 'tax_rate', v)}
+                        className="px-4 py-2 text-right"
+                        format={v => `${(Number(v) * 100).toFixed(0)}%`}
+                      />
+                    </td>
+                    <td className="td text-right font-semibold positive">
+                      € {fmt(calcMonthlyNet(it))}
+                    </td>
+                    <td className="td">
+                      {deleteConfirm === it.id ? (
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={() => handleDelete(it.id)}
+                            className="text-xs text-white bg-[#DC2626] px-2 py-0.5 rounded hover:bg-red-700 transition-colors"
+                          >
+                            Yes
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirm(null)}
+                            className="text-xs text-[#64748B] px-2 py-0.5 rounded hover:bg-[#F1F5F9] transition-colors"
+                          >
+                            No
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setDeleteConfirm(it.id)}
+                          className="text-[#DC2626] hover:text-red-800 text-sm transition-colors"
+                        >
+                          Delete
+                        </button>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
       )}
 
@@ -222,39 +228,39 @@ export default function IncomeTypesPage() {
       >
         <form onSubmit={handleCreate} className="space-y-4">
           <div>
-            <label className="block text-sm text-[#1A1A1A] mb-1">Name</label>
+            <label className="block text-sm font-medium text-[#0F172A] mb-1.5">Name</label>
             <input
               type="text"
               value={form.name}
               onChange={e => setForm(prev => ({ ...prev, name: e.target.value }))}
               placeholder="e.g. Student Job"
-              className="w-full border border-[#E5E5E5] px-3 py-2 text-sm outline-none focus:border-[#C9A84C]"
+              className="input"
             />
           </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-[#1A1A1A] mb-1">Hours/Week</label>
+              <label className="block text-sm font-medium text-[#0F172A] mb-1.5">Hours/Week</label>
               <input
                 type="number"
                 value={form.hours_per_week}
                 onChange={e => setForm(prev => ({ ...prev, hours_per_week: e.target.value }))}
                 placeholder="0"
-                className="w-full border border-[#E5E5E5] px-3 py-2 text-sm outline-none focus:border-[#C9A84C]"
+                className="input"
               />
             </div>
             <div>
-              <label className="block text-sm text-[#1A1A1A] mb-1">Salary/Hour (€)</label>
+              <label className="block text-sm font-medium text-[#0F172A] mb-1.5">Salary/Hour (€)</label>
               <input
                 type="number"
                 value={form.salary_per_hour}
                 onChange={e => setForm(prev => ({ ...prev, salary_per_hour: e.target.value }))}
                 placeholder="0"
-                className="w-full border border-[#E5E5E5] px-3 py-2 text-sm outline-none focus:border-[#C9A84C]"
+                className="input"
               />
             </div>
           </div>
           <div>
-            <label className="block text-sm text-[#1A1A1A] mb-1">Tax Rate (0–1, e.g. 0.20 = 20%)</label>
+            <label className="block text-sm font-medium text-[#0F172A] mb-1.5">Tax Rate (0–1, e.g. 0.20 = 20%)</label>
             <input
               type="number"
               step="0.01"
@@ -263,32 +269,37 @@ export default function IncomeTypesPage() {
               value={form.tax_rate}
               onChange={e => setForm(prev => ({ ...prev, tax_rate: e.target.value }))}
               placeholder="0.20"
-              className="w-full border border-[#E5E5E5] px-3 py-2 text-sm outline-none focus:border-[#C9A84C]"
+              className="input"
             />
           </div>
 
           {form.hours_per_week && form.salary_per_hour && (
-            <div className="bg-[#F8F8F8] border border-[#E5E5E5] px-3 py-2 text-sm">
-              Monthly Net (est.): <strong>
+            <div className="bg-[#EFF6FF] border border-[#BFDBFE] rounded-lg px-4 py-3 text-sm text-[#1E3A8A]">
+              Monthly Net (est.):&nbsp;
+              <strong>
                 € {fmt(Number(form.hours_per_week) * Number(form.salary_per_hour) * (1 - Number(form.tax_rate || 0)) * 4.34)}
               </strong>
             </div>
           )}
 
-          {formError && <div className="text-red-600 text-sm">{formError}</div>}
+          {formError && (
+            <div className="text-[#DC2626] text-sm bg-[#FEF2F2] border border-red-200 rounded-lg px-4 py-3">
+              {formError}
+            </div>
+          )}
 
           <div className="flex justify-end gap-3 pt-2">
             <button
               type="button"
               onClick={() => { setModalOpen(false); setFormError(null) }}
-              className="text-sm text-gray-500 px-4 py-2 hover:bg-[#F8F8F8]"
+              className="border border-[#E2E8F0] text-[#0F172A] hover:bg-[#F1F5F9] rounded-lg px-4 py-2 text-sm transition-colors"
             >
               Cancel
             </button>
             <button
               type="submit"
               disabled={saving}
-              className="bg-[#C9A84C] text-white px-5 py-2 text-sm font-medium hover:bg-[#b8953f] disabled:opacity-60"
+              className="bg-[#1E3A8A] text-white hover:bg-[#172554] rounded-lg px-5 py-2 text-sm font-medium transition-colors disabled:opacity-60"
             >
               {saving ? 'Adding...' : 'Add'}
             </button>
