@@ -6,10 +6,7 @@ import { useState } from 'react'
 const navItems = [
   { href: '/overview', label: 'Overview' },
   { href: '/months', label: 'Months' },
-  { href: '/config', label: 'Config' },
-  { href: '/income-types', label: 'Income Types' },
-  { href: '/internships', label: 'Internships' },
-  { href: '/balance', label: 'Balance' },
+  { href: '/settings', label: 'Settings' },
 ]
 
 export default function Sidebar() {

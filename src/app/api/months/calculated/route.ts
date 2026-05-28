@@ -3,6 +3,8 @@ import { supabase } from '@/lib/supabase'
 import { calculateMonths } from '@/lib/calculations'
 import type { Config, Month, IncomeType, Internship, BalanceItem } from '@/types'
 
+export const dynamic = 'force-dynamic'
+
 export async function GET() {
   try {
     const [configRes, monthsRes, incomeTypesRes, internshipsRes, balanceRes] = await Promise.all([
