@@ -6,6 +6,7 @@ import type {
   Internship,
   InternshipExpenseOverride,
   MonthData,
+  MonthExpenseOverride,
   CalculatedMonth,
 } from '@/types'
 
@@ -132,7 +133,8 @@ export function calculateMonths(
   incomeTypes: IncomeType[],
   expenseCategories: ExpenseCategory[],
   internshipOverrides: InternshipExpenseOverride[],
-  capitalItems: CapitalItem[]
+  capitalItems: CapitalItem[],
+  monthExpenseOverrides: MonthExpenseOverride[] = []
 ): CalculatedMonth[] {
   const startMonth = config.start_month || new Date().toISOString().slice(0, 7) + '-01'
   const numMonths = parseInt(config.num_months || '24', 10)
@@ -148,6 +150,12 @@ export function calculateMonths(
   const overrideMap = new Map<string, number>()
   for (const o of internshipOverrides) {
     overrideMap.set(`${o.internship_id}:${o.expense_category_id}`, n(o.amount))
+  }
+
+  // Per-month expense overrides: "YYYY-MM-01:category_id" → amount
+  const monthExpMap = new Map<string, number>()
+  for (const o of monthExpenseOverrides) {
+    monthExpMap.set(`${o.month_date}:${o.expense_category_id}`, n(o.amount))
   }
 
   const netCapital = calculateNetCapital(capitalItems)
@@ -194,8 +202,13 @@ export function calculateMonths(
     // (the user is in that location/period regardless of how income is entered).
     const expenses = expenseCategories.map(cat => {
       let amount = 0
+      const monthKey = `${monthDate}:${cat.id}`
+      const hasMontOverride = monthExpMap.has(monthKey)
 
-      if (cat.type === 'once' || cat.type === 'yearly') {
+      if (hasMontOverride) {
+        // Per-month override has highest priority
+        amount = monthExpMap.get(monthKey)!
+      } else if (cat.type === 'once' || cat.type === 'yearly') {
         amount = computeExpenseAmount(cat, monthDate, daysInMonth)
       } else if (internship && ratio > 0) {
         const overrideKey = `${internship.id}:${cat.id}`
@@ -203,10 +216,8 @@ export function calculateMonths(
         const overrideAmt = hasOverride ? overrideMap.get(overrideKey)! : undefined
 
         if (ratio >= 1) {
-          // Full internship month
           amount = computeExpenseAmount(cat, monthDate, daysInMonth, overrideAmt)
         } else {
-          // Partial internship month: blend internship and normal amounts
           const internAmt = computeExpenseAmount(cat, monthDate, daysInMonth, overrideAmt) * ratio
           const normalAmt = computeExpenseAmount(cat, monthDate, daysInMonth) * (1 - ratio)
           amount = internAmt + normalAmt
@@ -219,6 +230,7 @@ export function calculateMonths(
         category_id: cat.id,
         name: cat.name,
         amount: isFinite(amount) ? amount : 0,
+        is_override: hasMontOverride,
       }
     })
 
