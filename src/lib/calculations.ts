@@ -1,6 +1,17 @@
-import type { Config, IncomeType, Month, Internship, BalanceItem, CalculatedMonth } from '@/types'
+import type {
+  Config,
+  IncomeType,
+  ExpenseCategory,
+  CapitalItem,
+  Internship,
+  InternshipExpenseOverride,
+  MonthData,
+  CalculatedMonth,
+} from '@/types'
 
-// Timezone-safe date parser — avoids UTC-midnight shifting to previous day in western timezones
+const WEEKS_PER_MONTH = 52 / 12
+
+// Timezone-safe: avoids UTC-midnight shifting in western timezones
 function parseDate(dateStr: string): Date {
   const [y, m, d] = dateStr.split('-').map(Number)
   return new Date(y, m - 1, d)
@@ -9,37 +20,6 @@ function parseDate(dateStr: string): Date {
 export function getDaysInMonth(dateStr: string): number {
   const [y, m] = dateStr.split('-').map(Number)
   return new Date(y, m, 0).getDate()
-}
-
-export function getInternshipForMonth(monthDateStr: string, internships: Internship[]): Internship | null {
-  const monthStart = parseDate(monthDateStr)
-  const [y, m] = monthDateStr.split('-').map(Number)
-  const monthEnd = new Date(y, m, 0)
-
-  for (const intern of internships) {
-    const internStart = parseDate(intern.start_date)
-    const internEnd = parseDate(intern.end_date)
-    if (internStart <= monthEnd && internEnd >= monthStart) {
-      return intern
-    }
-  }
-  return null
-}
-
-export function getInternshipRatio(monthDateStr: string, internship: Internship): number {
-  const monthStart = parseDate(monthDateStr)
-  const [y, m] = monthDateStr.split('-').map(Number)
-  const monthEnd = new Date(y, m, 0)
-  const daysInMonth = monthEnd.getDate()
-
-  const internStart = parseDate(internship.start_date)
-  const internEnd = parseDate(internship.end_date)
-
-  const overlapStart = internStart > monthStart ? internStart : monthStart
-  const overlapEnd = internEnd < monthEnd ? internEnd : monthEnd
-
-  const daysOverlap = Math.floor((overlapEnd.getTime() - overlapStart.getTime()) / 86400000) + 1
-  return Math.min(daysOverlap / daysInMonth, 1)
 }
 
 export function generateMonthDates(startDateStr: string, count: number): string[] {
@@ -56,118 +36,207 @@ export function generateMonthDates(startDateStr: string, count: number): string[
 
 export function formatMonthLabel(dateStr: string): string {
   const d = parseDate(dateStr)
-  return d.toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
+  return d.toLocaleDateString('de-DE', { month: 'short', year: 'numeric' })
+}
+
+function getInternshipForMonth(monthDateStr: string, internships: Internship[]): Internship | null {
+  const monthStart = parseDate(monthDateStr)
+  const [y, m] = monthDateStr.split('-').map(Number)
+  const monthEnd = new Date(y, m, 0)
+  for (const intern of internships) {
+    const start = parseDate(intern.start_date)
+    const end = parseDate(intern.end_date)
+    if (start <= monthEnd && end >= monthStart) return intern
+  }
+  return null
+}
+
+function getInternshipRatio(monthDateStr: string, internship: Internship): number {
+  const monthStart = parseDate(monthDateStr)
+  const [y, m] = monthDateStr.split('-').map(Number)
+  const monthEnd = new Date(y, m, 0)
+  const daysInMonth = monthEnd.getDate()
+  const start = parseDate(internship.start_date)
+  const end = parseDate(internship.end_date)
+  const overlapStart = start > monthStart ? start : monthStart
+  const overlapEnd = end < monthEnd ? end : monthEnd
+  const daysOverlap = Math.floor((overlapEnd.getTime() - overlapStart.getTime()) / 86400000) + 1
+  return Math.min(Math.max(daysOverlap / daysInMonth, 0), 1)
+}
+
+export function computeIncomeForType(incomeType: IncomeType): number {
+  if (incomeType.type === 'manual') return incomeType.manual_amount || 0
+  return (
+    (incomeType.hours_per_week || 0) *
+    (incomeType.salary_per_hour || 0) *
+    (1 - (incomeType.tax_rate || 0)) *
+    WEEKS_PER_MONTH
+  )
+}
+
+function computeInternshipIncome(internship: Internship): number {
+  if (internship.income_mode === 'hourly') {
+    return (
+      (internship.hours_per_week || 0) *
+      (internship.salary_per_hour || 0) *
+      (1 - (internship.tax_rate || 0)) *
+      WEEKS_PER_MONTH
+    )
+  }
+  return internship.manual_salary || 0
+}
+
+// overrideAmount replaces default_amount for monthly/daily types.
+// once/yearly always use default_amount (no internship override applies).
+function computeExpenseAmount(
+  category: ExpenseCategory,
+  monthDateStr: string,
+  daysInMonth: number,
+  overrideAmount?: number
+): number {
+  const base = (overrideAmount !== undefined ? overrideAmount : category.default_amount) || 0
+  switch (category.type) {
+    case 'monthly':
+      return base
+    case 'daily':
+      return base * daysInMonth
+    case 'once':
+      if (!category.once_month) return 0
+      return category.once_month.slice(0, 7) === monthDateStr.slice(0, 7)
+        ? (category.default_amount || 0)
+        : 0
+    case 'yearly': {
+      if (!category.yearly_month) return 0
+      const monthNum = parseInt(monthDateStr.split('-')[1], 10)
+      return monthNum === category.yearly_month ? (category.default_amount || 0) : 0
+    }
+    default:
+      return 0
+  }
+}
+
+export function calculateNetCapital(capitalItems: CapitalItem[]): number {
+  return capitalItems.reduce((sum, item) => {
+    const amount = item.amount || 0
+    if (item.category === 'Cash' || item.category === 'Receivables') return sum + amount
+    return sum - amount
+  }, 0)
 }
 
 export function calculateMonths(
   config: Config,
-  dbMonths: Month[],
+  monthDataList: MonthData[],
   internships: Internship[],
   incomeTypes: IncomeType[],
-  balanceItems: BalanceItem[]
+  expenseCategories: ExpenseCategory[],
+  internshipOverrides: InternshipExpenseOverride[],
+  capitalItems: CapitalItem[]
 ): CalculatedMonth[] {
   const startMonth = config.start_month || new Date().toISOString().slice(0, 7) + '-01'
   const numMonths = parseInt(config.num_months || '24', 10)
   const monthDates = generateMonthDates(startMonth, numMonths)
 
-  const dbMonthMap = new Map<string, Month>()
-  for (const mo of dbMonths) {
-    dbMonthMap.set(mo.month_date, mo)
-  }
+  const monthDataMap = new Map<string, MonthData>()
+  for (const md of monthDataList) monthDataMap.set(md.month_date, md)
+
   const incomeTypeMap = new Map<string, IncomeType>()
-  for (const it of incomeTypes) {
-    incomeTypeMap.set(it.id, it)
+  for (const it of incomeTypes) incomeTypeMap.set(it.id, it)
+
+  // overrideKey = "internship_id:category_id"
+  const overrideMap = new Map<string, number>()
+  for (const o of internshipOverrides) {
+    overrideMap.set(`${o.internship_id}:${o.expense_category_id}`, o.amount || 0)
   }
 
-  // Initial savings from balance items
-  let initialSavings = 0
-  for (const item of balanceItems) {
-    let amount = item.amount
-    if (item.internship_id) {
-      const intern = internships.find(i => i.id === item.internship_id)
-      if (intern) {
-        const start = parseDate(intern.start_date)
-        const end = parseDate(intern.end_date)
-        const durationMonths =
-          (end.getFullYear() - start.getFullYear()) * 12 +
-          (end.getMonth() - start.getMonth()) + 1
-        amount = intern.net_salary * durationMonths
-      }
-    }
-    if (item.direction === '+') initialSavings += amount
-    else initialSavings -= amount
-  }
-
+  const netCapital = calculateNetCapital(capitalItems)
   const results: CalculatedMonth[] = []
-  let runningSavings = initialSavings
+  let cumulative = netCapital
 
   for (const monthDate of monthDates) {
-    const dbMonth = dbMonthMap.get(monthDate)
+    const md = monthDataMap.get(monthDate) ?? null
     const daysInMonth = getDaysInMonth(monthDate)
     const internship = getInternshipForMonth(monthDate, internships)
-    const incomeTypeId = dbMonth?.income_type_id ?? null
-    const incomeType = incomeTypeId ? (incomeTypeMap.get(incomeTypeId) ?? null) : null
+    const ratio = internship ? getInternshipRatio(monthDate, internship) : 0
 
-    // Salary
-    let salary = 0
-    if (dbMonth?.manual_salary != null) {
-      salary = dbMonth.manual_salary
-    } else if (internship) {
-      salary = internship.net_salary * getInternshipRatio(monthDate, internship)
-    } else if (incomeType) {
-      salary = incomeType.hours_per_week * incomeType.salary_per_hour * (1 - incomeType.tax_rate) * 4.34
+    // ── Income ──────────────────────────────────────────────────────────────
+    // Priority: manual_salary (month_data) > internship > income_type > 0
+    let income = 0
+    let incomeLabel = '–'
+    let resolvedIncomeType: IncomeType | null = null
+    const hasManualSalary = md?.manual_salary != null
+
+    if (hasManualSalary) {
+      income = md!.manual_salary!
+      incomeLabel = 'Manuell'
+    } else if (internship && ratio > 0) {
+      const fullInternIncome = computeInternshipIncome(internship)
+      income = fullInternIncome * ratio
+      incomeLabel = internship.name
+      // Blend in normal income for non-internship portion of partial months
+      if (ratio < 1 && md?.income_type_id) {
+        const it = incomeTypeMap.get(md.income_type_id)
+        if (it) income += computeIncomeForType(it) * (1 - ratio)
+      }
+    } else if (md?.income_type_id) {
+      resolvedIncomeType = incomeTypeMap.get(md.income_type_id) ?? null
+      if (resolvedIncomeType) {
+        income = computeIncomeForType(resolvedIncomeType)
+        incomeLabel = resolvedIncomeType.name
+      }
     }
 
-    // Costs — internship overrides config; gym+transport is stored in `other` for display
-    let support: number, rent: number, food: number, fun: number, other: number
-    if (internship) {
-      support = internship.support_papa + internship.support_mama
-      rent = internship.rent
-      food = internship.food
-      fun = internship.fun
-      other = internship.gym + internship.transport
-    } else {
-      support = parseFloat(config.support_papa || '0') + parseFloat(config.support_mama || '0')
-      rent = parseFloat(config.rent || '0')
-      food = parseFloat(config.food_per_day || '0') * daysInMonth
-      fun = parseFloat(config.fun_per_day || '0') * daysInMonth
-      other = parseFloat(config.other_monthly || '0')
-    }
+    // ── Expenses ─────────────────────────────────────────────────────────────
+    // For monthly/daily: blend internship override with normal for partial months.
+    // For once/yearly: no internship override; use category default as-is.
+    // When manual_salary is set, we still apply internship expense overrides
+    // (the user is in that location/period regardless of how income is entered).
+    const expenses = expenseCategories.map(cat => {
+      let amount = 0
 
-    const insurance = config.insurance_active === 'true' ? parseFloat(config.insurance || '0') : 0
-    const hasFlightFlag = dbMonth?.has_flight ?? false
-    const flights = hasFlightFlag ? parseFloat(config.flight_price || '0') : 0
-    const tuition = dbMonth?.tuition_fee ?? 0
-    const annualFee = dbMonth?.annual_fee ?? 0
-    const adjustment = dbMonth?.adjustment ?? 0
+      if (cat.type === 'once' || cat.type === 'yearly') {
+        amount = computeExpenseAmount(cat, monthDate, daysInMonth)
+      } else if (internship && ratio > 0) {
+        const overrideKey = `${internship.id}:${cat.id}`
+        const hasOverride = overrideMap.has(overrideKey)
+        const overrideAmt = hasOverride ? overrideMap.get(overrideKey)! : undefined
 
-    const result =
-      salary + support - rent - food - fun - other - insurance - flights - tuition - annualFee - adjustment
+        if (ratio >= 1) {
+          // Full internship month
+          amount = computeExpenseAmount(cat, monthDate, daysInMonth, overrideAmt)
+        } else {
+          // Partial internship month: blend internship and normal amounts
+          const internAmt = computeExpenseAmount(cat, monthDate, daysInMonth, overrideAmt) * ratio
+          const normalAmt = computeExpenseAmount(cat, monthDate, daysInMonth) * (1 - ratio)
+          amount = internAmt + normalAmt
+        }
+      } else {
+        amount = computeExpenseAmount(cat, monthDate, daysInMonth)
+      }
 
-    runningSavings += result
+      return {
+        category_id: cat.id,
+        name: cat.name,
+        amount: isFinite(amount) ? amount : 0,
+      }
+    })
+
+    const safeIncome = isFinite(income) ? income : 0
+    const total_expenses = expenses.reduce((s, e) => s + e.amount, 0)
+    const result = safeIncome - total_expenses
+    cumulative += result
 
     results.push({
       month_date: monthDate,
       label: formatMonthLabel(monthDate),
-      month_id: dbMonth?.id ?? null,
-      income_type_id: incomeTypeId,
-      manual_salary: dbMonth?.manual_salary ?? null,
-      has_flight: hasFlightFlag,
-      tuition_fee: tuition,
-      annual_fee: annualFee,
-      adjustment,
-      salary,
-      support,
-      rent,
-      food,
-      fun,
-      insurance,
-      flights,
-      other,
+      income: safeIncome,
+      income_label: incomeLabel,
+      expenses,
+      total_expenses,
       result,
-      savings: runningSavings,
+      cumulative,
       internship: internship ?? null,
-      income_type: incomeType,
+      income_type: resolvedIncomeType,
+      month_data: md,
     })
   }
 
@@ -175,5 +244,19 @@ export function calculateMonths(
 }
 
 export function fmt(n: number): string {
-  return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
+  return new Intl.NumberFormat('de-DE', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(n)
+}
+
+export function fmtShort(n: number): string {
+  const abs = Math.abs(n)
+  if (abs >= 1000) {
+    return new Intl.NumberFormat('de-DE', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 0,
+    }).format(n)
+  }
+  return fmt(n)
 }

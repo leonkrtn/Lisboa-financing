@@ -4,9 +4,10 @@ import { usePathname } from 'next/navigation'
 import { useState } from 'react'
 
 const links = [
-  { href: '/', label: 'Overview' },
-  { href: '/months', label: 'Months' },
-  { href: '/setup', label: 'Setup' },
+  { href: '/', label: 'Dashboard' },
+  { href: '/capital', label: 'Kapital' },
+  { href: '/planning', label: 'Planung' },
+  { href: '/setup', label: 'Einstellungen' },
 ]
 
 export default function TopNav() {
@@ -20,14 +21,12 @@ export default function TopNav() {
 
   return (
     <nav className="h-12 bg-[#1E3A8A] flex items-center px-4 shrink-0 relative z-40">
-      {/* Logo */}
       <Link href="/" className="flex items-center gap-1.5 mr-8 shrink-0">
         <span className="font-bold text-white text-base tracking-tight">Lisboa</span>
         <span className="text-[#93C5FD] font-light">·</span>
         <span className="text-[#93C5FD] font-medium text-base tracking-tight">Finance</span>
       </Link>
 
-      {/* Desktop nav */}
       <div className="hidden md:flex items-center gap-1 flex-1">
         {links.map((link) => (
           <Link
@@ -44,7 +43,6 @@ export default function TopNav() {
         ))}
       </div>
 
-      {/* Mobile hamburger */}
       <button
         className="md:hidden ml-auto text-white/80 hover:text-white p-1"
         onClick={() => setMenuOpen((v) => !v)}
@@ -61,7 +59,6 @@ export default function TopNav() {
         )}
       </button>
 
-      {/* Mobile dropdown */}
       {menuOpen && (
         <div className="md:hidden absolute top-12 left-0 right-0 bg-white border-b border-[#E5E7EB] shadow-md z-50">
           {links.map((link) => (
