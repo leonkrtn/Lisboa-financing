@@ -6,7 +6,7 @@ export const dynamic = 'force-dynamic'
 export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
   const body = await request.json()
   const { data, error } = await supabase
-    .from('income_types')
+    .from('expense_categories')
     .update(body)
     .eq('id', params.id)
     .select()
@@ -16,7 +16,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 }
 
 export async function DELETE(_: NextRequest, { params }: { params: { id: string } }) {
-  const { error } = await supabase.from('income_types').delete().eq('id', params.id)
+  const { error } = await supabase.from('expense_categories').delete().eq('id', params.id)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
   return NextResponse.json({ success: true })
 }

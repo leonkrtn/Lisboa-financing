@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
 import {
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, ReferenceLine,
@@ -7,52 +8,89 @@ import {
 import type { CalculatedMonth } from '@/types'
 import { fmt } from '@/lib/calculations'
 
-export default function OverviewPage() {
-  const [months, setMonths] = useState<CalculatedMonth[]>([])
+interface CalcResponse {
+  months: CalculatedMonth[]
+  net_capital: number
+}
+
+export default function DashboardPage() {
+  const [data, setData] = useState<CalcResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
 
   useEffect(() => {
-    fetch('/api/months/calculated')
+    fetch('/api/calculated')
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
-      .then(d => { setMonths(d); setLoading(false) })
+      .then(d => { setData(d); setLoading(false) })
       .catch(e => { setErr(e.message); setLoading(false) })
   }, [])
 
-  if (loading) return <Center>Loading…</Center>
-  if (err) return <Center red>Error: {err}</Center>
-  if (!months.length) return <Center>No data — configure settings first.</Center>
+  if (loading) return <Center>Laden…</Center>
+  if (err) return <Center red>Fehler: {err}</Center>
 
-  const initialSavings = months[0].savings - months[0].result
-  const finalSavings = months[months.length - 1].savings
+  const months = data?.months ?? []
+  const netCapital = data?.net_capital ?? 0
+
+  if (!months.length) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-3">
+        <p className="text-sm text-[#6B7280]">Noch keine Daten – starte mit der Konfiguration.</p>
+        <Link href="/setup" className="btn-primary">Zu den Einstellungen →</Link>
+      </div>
+    )
+  }
+
+  const finalBalance = months[months.length - 1].cumulative
+  const minBalance = Math.min(...months.map(m => m.cumulative))
+  const negativeMonth = months.find(m => m.cumulative < 0)
   const avgResult = months.reduce((s, m) => s + m.result, 0) / months.length
-  const minSavings = Math.min(...months.map(m => m.savings))
-  const zeroIdx = months.findIndex(m => m.savings <= 0)
+
+  // Chart data: prepend the starting net capital as "Start" point
+  const chartData = [
+    { label: 'Start', cumulative: netCapital },
+    ...months.map(m => ({ label: m.label, cumulative: m.cumulative })),
+  ]
 
   return (
-    <div className="p-6 max-w-[1400px] mx-auto space-y-6">
-      {/* KPIs */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        {[
-          { label: 'Starting Balance', value: initialSavings },
-          { label: 'Avg Monthly Result', value: avgResult },
-          { label: 'Lowest Point', value: minSavings },
-          { label: 'Final Balance', value: finalSavings },
-        ].map(k => (
-          <div key={k.label} className="bg-white rounded-lg border border-[#E5E7EB] p-4">
-            <p className="text-xs font-semibold uppercase tracking-wider text-[#6B7280] mb-1">{k.label}</p>
-            <p className={`text-2xl font-bold num ${k.value >= 0 ? 'pos' : 'neg'}`}>
-              {k.value < 0 ? '–' : ''}€{fmt(Math.abs(k.value))}
-            </p>
-          </div>
-        ))}
+    <div className="p-4 md:p-6 max-w-[1200px] mx-auto space-y-5">
+
+      {/* Top KPI row */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <KpiCard
+          label="Netto-Kapital"
+          value={netCapital}
+          sub="Aktueller Vermögensstand"
+          large
+        />
+        <KpiCard
+          label="Ø Monatsergebnis"
+          value={avgResult}
+          sub="Einnahmen − Ausgaben"
+        />
+        <KpiCard
+          label="Tiefpunkt"
+          value={minBalance}
+          sub={minBalance === netCapital ? 'Gleichbleibend' : undefined}
+        />
+        <KpiCard
+          label="Endstand"
+          value={finalBalance}
+          sub={`nach ${months.length} Monaten`}
+        />
       </div>
 
-      {/* Savings chart */}
+      {/* Alert if going negative */}
+      {negativeMonth && (
+        <div className="rounded-lg border border-[#FCA5A5] bg-[#FEF2F2] px-4 py-3 text-sm text-[#DC2626]">
+          ⚠ Kontostand wird negativ ab <strong>{negativeMonth.label}</strong>
+        </div>
+      )}
+
+      {/* Chart */}
       <div className="bg-white rounded-lg border border-[#E5E7EB] p-5">
-        <h2 className="text-sm font-semibold mb-4">Savings Trajectory</h2>
-        <ResponsiveContainer width="100%" height={260}>
-          <AreaChart data={months} margin={{ top: 4, right: 8, bottom: 0, left: 8 }}>
+        <h2 className="text-sm font-semibold mb-4 text-[#111827]">Vermögensentwicklung</h2>
+        <ResponsiveContainer width="100%" height={280}>
+          <AreaChart data={chartData} margin={{ top: 4, right: 8, bottom: 0, left: 8 }}>
             <defs>
               <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.18} />
@@ -75,13 +113,13 @@ export default function OverviewPage() {
               width={52}
             />
             <Tooltip
-              formatter={(v: number) => [`€${fmt(v)}`, 'Savings']}
+              formatter={(v: number) => [`€ ${fmt(v)}`, 'Kontostand']}
               contentStyle={{ fontSize: 12, borderRadius: 6, border: '1px solid #E5E7EB', boxShadow: 'none' }}
             />
-            <ReferenceLine y={0} stroke="#E5E7EB" />
+            <ReferenceLine y={0} stroke="#FCA5A5" strokeDasharray="4 2" />
             <Area
               type="monotone"
-              dataKey="savings"
+              dataKey="cumulative"
               stroke="#3B82F6"
               strokeWidth={2}
               fill="url(#grad)"
@@ -90,63 +128,37 @@ export default function OverviewPage() {
             />
           </AreaChart>
         </ResponsiveContainer>
-        {zeroIdx !== -1 && (
-          <p className="mt-3 text-xs text-[#DC2626]">
-            Savings run out in <strong>{months[zeroIdx].label}</strong>{' '}
-            ({zeroIdx + 1} month{zeroIdx !== 0 ? 's' : ''} from start)
-          </p>
-        )}
       </div>
 
-      {/* Full months table */}
-      <div className="bg-white rounded-lg border border-[#E5E7EB] overflow-hidden">
-        <div className="px-4 py-3 border-b border-[#E5E7EB] flex items-center justify-between">
-          <h2 className="text-sm font-semibold">Monthly Breakdown</h2>
-          <a href="/months" className="text-xs text-[#3B82F6] hover:underline">Edit in planner →</a>
-        </div>
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border-separate border-spacing-0">
-            <thead>
-              <tr>
-                {['Month', 'Type', 'Salary', 'Support', 'Rent', 'Food', 'Fun', 'Other', 'Ins', 'Flt', 'Tuition', 'Annual', 'Adj', 'Result', 'Savings'].map((h, i) => (
-                  <th key={h} className={`t-head px-3 py-2 whitespace-nowrap ${i < 2 ? 'text-left' : 'text-right'}`}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {months.map(m => (
-                <tr key={m.month_date} className={`t-row${m.internship ? ' bg-amber-50' : ''}`}>
-                  <td className="t-cell px-3 py-1.5 font-medium whitespace-nowrap">
-                    {m.label}{m.has_flight && <span className="ml-1 text-xs text-[#6B7280]">✈</span>}
-                  </td>
-                  <td className="t-cell px-3 py-1.5 text-xs text-[#6B7280] whitespace-nowrap">
-                    {m.internship
-                      ? <span className="bg-amber-100 text-amber-700 rounded px-1.5 py-0.5">{m.internship.name}</span>
-                      : (m.income_type?.name ?? '—')}
-                  </td>
-                  <td className={`t-cell px-3 py-1.5 num text-right ${m.salary > 0 ? 'pos' : ''}`}>{fmt(m.salary)}</td>
-                  <td className={`t-cell px-3 py-1.5 num text-right ${m.support > 0 ? 'pos' : 'text-[#9CA3AF]'}`}>{fmt(m.support)}</td>
-                  <td className="t-cell px-3 py-1.5 num text-right neg">{fmt(m.rent)}</td>
-                  <td className="t-cell px-3 py-1.5 num text-right neg">{fmt(m.food)}</td>
-                  <td className="t-cell px-3 py-1.5 num text-right neg">{fmt(m.fun)}</td>
-                  <td className="t-cell px-3 py-1.5 num text-right neg">{fmt(m.other)}</td>
-                  <td className="t-cell px-3 py-1.5 num text-right neg">{fmt(m.insurance)}</td>
-                  <td className="t-cell px-3 py-1.5 num text-right neg">{fmt(m.flights)}</td>
-                  <td className="t-cell px-3 py-1.5 num text-right neg">{fmt(m.tuition_fee)}</td>
-                  <td className="t-cell px-3 py-1.5 num text-right neg">{fmt(m.annual_fee)}</td>
-                  <td className="t-cell px-3 py-1.5 num text-right">{fmt(m.adjustment)}</td>
-                  <td className={`t-cell px-3 py-1.5 num text-right font-semibold ${m.result >= 0 ? 'pos' : 'neg'}`}>
-                    {m.result >= 0 ? '+' : '–'}{fmt(Math.abs(m.result))}
-                  </td>
-                  <td className={`t-cell px-3 py-1.5 num text-right font-bold ${m.savings >= 0 ? 'pos' : 'neg'}`}>
-                    {fmt(m.savings)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+      {/* Quick links */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+        {[
+          { href: '/capital', label: 'Kapitalplanung', desc: 'Cash, Receivables, Payables, Provisions' },
+          { href: '/planning', label: 'Ausgabenplanung', desc: 'Monatliche Einnahmen & Ausgaben' },
+          { href: '/setup', label: 'Einstellungen', desc: 'Einnahmearten, Kategorien, Internships' },
+        ].map(l => (
+          <Link
+            key={l.href}
+            href={l.href}
+            className="bg-white rounded-lg border border-[#E5E7EB] p-4 hover:border-[#3B82F6] hover:shadow-sm transition-all group"
+          >
+            <p className="text-sm font-semibold text-[#111827] group-hover:text-[#1E3A8A]">{l.label} →</p>
+            <p className="text-xs text-[#6B7280] mt-0.5">{l.desc}</p>
+          </Link>
+        ))}
       </div>
+    </div>
+  )
+}
+
+function KpiCard({ label, value, sub, large }: { label: string; value: number; sub?: string; large?: boolean }) {
+  return (
+    <div className="bg-white rounded-lg border border-[#E5E7EB] p-4">
+      <p className="text-xs font-semibold uppercase tracking-wider text-[#6B7280] mb-1">{label}</p>
+      <p className={`font-bold num ${large ? 'text-3xl' : 'text-2xl'} ${value >= 0 ? 'pos' : 'neg'}`}>
+        {value < 0 ? '–' : ''}€ {fmt(Math.abs(value))}
+      </p>
+      {sub && <p className="text-xs text-[#9CA3AF] mt-0.5">{sub}</p>}
     </div>
   )
 }
