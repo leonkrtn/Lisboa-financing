@@ -17,7 +17,6 @@ export default function PlanningPage() {
   const [incomeTypes, setIncomeTypes] = useState<IncomeType[]>([])
   const [loading, setLoading] = useState(true)
 
-  // Inline income editor state
   const [editingDate, setEditingDate] = useState<string | null>(null)
   const [editMode, setEditMode] = useState<IncomeEditMode>('none')
   const [editTypeId, setEditTypeId] = useState<string>('')
@@ -25,7 +24,6 @@ export default function PlanningPage() {
   const [saving, setSaving] = useState(false)
   const editRef = useRef<HTMLDivElement>(null)
 
-  // Month detail modal
   const [detailMonth, setDetailMonth] = useState<CalculatedMonth | null>(null)
 
   const fetchData = useCallback(async () => {
@@ -41,7 +39,6 @@ export default function PlanningPage() {
 
   useEffect(() => { fetchData() }, [fetchData])
 
-  // Close editor on outside click
   useEffect(() => {
     if (!editingDate) return
     function handleClick(e: MouseEvent) {
@@ -118,50 +115,62 @@ export default function PlanningPage() {
         )}
       </div>
 
-      <div className="bg-white rounded-xl border border-[#E5E7EB] overflow-hidden">
+      <div className="card overflow-hidden">
         <div className="overflow-x-auto">
-          <table className="w-full text-sm border-separate border-spacing-0" style={{ minWidth: `${300 + categories.length * 110 + 200}px` }}>
+          <table
+            className="w-full text-sm border-separate border-spacing-0"
+            style={{ minWidth: `${300 + categories.length * 120 + 220}px` }}
+          >
             <thead>
               <tr>
-                <th className="t-head px-3 py-2 text-left sticky left-0 z-10 bg-[#F9FAFB] whitespace-nowrap">Monat</th>
-                <th className="t-head px-3 py-2 text-right whitespace-nowrap">Einnahmen</th>
+                <th className="t-head px-4 py-3 text-left sticky left-0 z-10 bg-[#F9FAFB] whitespace-nowrap">
+                  Monat
+                </th>
+                <th className="t-head px-4 py-3 text-right whitespace-nowrap">Einnahmen</th>
                 {categories.map(cat => (
-                  <th key={cat.id} className="t-head px-3 py-2 text-right whitespace-nowrap">
+                  <th key={cat.id} className="t-head px-4 py-3 text-right whitespace-nowrap">
                     {cat.name}
-                    <span className="block font-normal normal-case tracking-normal text-[#9CA3AF]">
+                    <span className="block font-normal normal-case tracking-normal text-[#9CA3AF] text-[11px]">
                       {cat.type === 'daily' ? '/ Tag' : cat.type === 'once' ? 'Einmalig' : cat.type === 'yearly' ? 'Jährlich' : '/ Mo'}
                     </span>
                   </th>
                 ))}
-                <th className="t-head px-3 py-2 text-right whitespace-nowrap">Ergebnis</th>
-                <th className="t-head px-3 py-2 text-right whitespace-nowrap">Kumuliert</th>
-                <th className="t-head px-3 py-2"></th>
+                <th className="t-head px-4 py-3 text-right whitespace-nowrap">Ergebnis</th>
+                <th className="t-head px-4 py-3 text-right whitespace-nowrap">Kumuliert</th>
+                <th className="t-head px-3 py-3 w-20"></th>
               </tr>
             </thead>
             <tbody>
-              {months.map(month => {
+              {months.map((month, idx) => {
                 const isEditing = editingDate === month.month_date
                 const isInternship = !!month.internship
+                const isLast = idx === months.length - 1
                 return (
                   <tr
                     key={month.month_date}
-                    className={`t-row ${isInternship ? 'bg-amber-50' : ''}`}
+                    className={`t-row group ${isInternship ? 'bg-amber-50' : ''}`}
                   >
                     {/* Month label */}
-                    <td className={`t-cell px-3 py-2 font-medium whitespace-nowrap sticky left-0 z-10 ${isInternship ? 'bg-amber-50' : 'bg-white'}`}
-                        style={{ borderRight: '1px solid #E5E7EB' }}>
-                      {month.label}
-                      {isInternship && (
-                        <span className="ml-1.5 text-xs bg-amber-100 text-amber-700 rounded px-1 py-0.5">
-                          {month.internship!.name}
-                        </span>
-                      )}
+                    <td
+                      className={`t-cell px-4 py-2.5 font-medium whitespace-nowrap sticky left-0 z-10 ${
+                        isLast ? 'border-b-0' : ''
+                      } ${isInternship ? 'bg-amber-50' : 'bg-white'}`}
+                      style={{ borderRight: '1px solid #E5E7EB' }}
+                    >
+                      <div className="flex items-center gap-2">
+                        <span>{month.label}</span>
+                        {isInternship && (
+                          <span className="text-xs bg-amber-100 text-amber-700 rounded px-1.5 py-0.5 font-medium">
+                            {month.internship!.name}
+                          </span>
+                        )}
+                      </div>
                     </td>
 
-                    {/* Income cell — editable */}
-                    <td className="t-cell px-3 py-2 text-right">
+                    {/* Income — editable */}
+                    <td className={`t-cell px-2 py-1.5 text-right ${isLast ? 'border-b-0' : ''}`}>
                       {isEditing ? (
-                        <div ref={editRef} className="inline-flex flex-col gap-1.5 items-end text-left min-w-[220px]">
+                        <div ref={editRef} className="inline-flex flex-col gap-1.5 items-end text-left min-w-[230px]">
                           <select
                             className="field text-xs"
                             value={editMode === 'manual' ? '__manual__' : editMode === 'type' ? editTypeId : ''}
@@ -172,7 +181,7 @@ export default function PlanningPage() {
                               else { setEditMode('type'); setEditTypeId(v) }
                             }}
                           >
-                            <option value="">– Keine –</option>
+                            <option value="">– Keine Einnahmen –</option>
                             {incomeTypes.map(it => (
                               <option key={it.id} value={it.id}>{it.name}</option>
                             ))}
@@ -186,24 +195,29 @@ export default function PlanningPage() {
                               onChange={e => setEditManual(e.target.value)}
                               placeholder="Nettobetrag €"
                               autoFocus
-                              onKeyDown={e => { if (e.key === 'Enter') saveIncome(month.month_date); if (e.key === 'Escape') setEditingDate(null) }}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') saveIncome(month.month_date)
+                                if (e.key === 'Escape') setEditingDate(null)
+                              }}
                             />
                           )}
                           <div className="flex gap-1.5">
                             <button
                               onClick={() => saveIncome(month.month_date)}
                               disabled={saving}
-                              className="btn-primary text-xs px-2.5 py-1"
+                              className="btn-primary text-xs px-3 py-1.5"
                             >
                               {saving ? '…' : 'Speichern'}
                             </button>
-                            <button onClick={() => setEditingDate(null)} className="btn-ghost text-xs">Abbruch</button>
+                            <button onClick={() => setEditingDate(null)} className="btn-secondary text-xs px-3 py-1.5">
+                              Abbruch
+                            </button>
                           </div>
                         </div>
                       ) : (
                         <button
                           onClick={() => openEditor(month)}
-                          className="editable rounded px-2 py-1 text-right w-full group"
+                          className="editable rounded-lg px-2 py-1.5 text-right w-full"
                           title="Klicken zum Bearbeiten"
                         >
                           <span className={`num font-medium ${month.income > 0 ? 'pos' : 'text-[#9CA3AF]'}`}>
@@ -218,7 +232,10 @@ export default function PlanningPage() {
 
                     {/* Expense cells */}
                     {month.expenses.map(exp => (
-                      <td key={exp.category_id} className="t-cell px-3 py-2 text-right">
+                      <td
+                        key={exp.category_id}
+                        className={`t-cell px-4 py-2.5 text-right ${isLast ? 'border-b-0' : ''}`}
+                      >
                         <span className={`num ${exp.amount > 0 ? 'neg' : 'text-[#D1D5DB]'}`}>
                           {exp.amount > 0 ? `€ ${fmt(exp.amount)}` : '–'}
                         </span>
@@ -226,20 +243,20 @@ export default function PlanningPage() {
                     ))}
 
                     {/* Result */}
-                    <td className={`t-cell px-3 py-2 text-right font-semibold num ${month.result >= 0 ? 'pos' : 'neg'}`}>
+                    <td className={`t-cell px-4 py-2.5 text-right font-semibold num ${isLast ? 'border-b-0' : ''} ${month.result >= 0 ? 'pos' : 'neg'}`}>
                       {month.result >= 0 ? '+' : '–'}€ {fmt(Math.abs(month.result))}
                     </td>
 
                     {/* Cumulative */}
-                    <td className={`t-cell px-3 py-2 text-right font-bold num ${month.cumulative >= 0 ? 'pos' : 'neg'}`}>
+                    <td className={`t-cell px-4 py-2.5 text-right font-bold num ${isLast ? 'border-b-0' : ''} ${month.cumulative >= 0 ? 'pos' : 'neg'}`}>
                       € {fmt(month.cumulative)}
                     </td>
 
-                    {/* Details */}
-                    <td className="t-cell px-2 py-2">
+                    {/* Details button */}
+                    <td className={`t-cell px-2 py-2 ${isLast ? 'border-b-0' : ''}`}>
                       <button
                         onClick={() => setDetailMonth(month)}
-                        className="text-xs text-[#6B7280] hover:text-[#1E3A8A] px-2 py-1 rounded hover:bg-[#EFF6FF] transition-colors"
+                        className="text-xs text-[#9CA3AF] hover:text-[#1E3A8A] px-2 py-1 rounded-lg hover:bg-[#EFF6FF] transition-colors whitespace-nowrap"
                       >
                         Details
                       </button>
@@ -264,15 +281,17 @@ function MonthDetail({ month }: { month: CalculatedMonth }) {
   return (
     <div className="space-y-4">
       {month.internship && (
-        <div className="rounded-md bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700">
+        <div className="rounded-lg bg-amber-50 border border-amber-200 px-3 py-2 text-xs text-amber-700">
           Internship: <strong>{month.internship.name}</strong>
         </div>
       )}
 
       <div>
-        <p className="text-xs font-semibold uppercase tracking-wider text-[#6B7280] mb-2">Einnahmen</p>
-        <div className="flex justify-between items-center py-1.5 border-b border-[#F3F4F6]">
-          <span className="text-sm text-[#111827]">{month.income_label !== '–' ? month.income_label : 'Einnahmen'}</span>
+        <p className="section-label mb-2">Einnahmen</p>
+        <div className="flex justify-between items-center py-2 border-b border-[#F3F4F6]">
+          <span className="text-sm text-[#111827]">
+            {month.income_label !== '–' ? month.income_label : 'Einnahmen'}
+          </span>
           <span className={`text-sm font-semibold num ${month.income > 0 ? 'pos' : 'text-[#9CA3AF]'}`}>
             + € {fmt(month.income)}
           </span>
@@ -281,10 +300,13 @@ function MonthDetail({ month }: { month: CalculatedMonth }) {
 
       {month.expenses.length > 0 && (
         <div>
-          <p className="text-xs font-semibold uppercase tracking-wider text-[#6B7280] mb-2">Ausgaben</p>
+          <p className="section-label mb-2">Ausgaben</p>
           <div className="space-y-0">
             {month.expenses.filter(e => e.amount > 0).map(exp => (
-              <div key={exp.category_id} className="flex justify-between items-center py-1.5 border-b border-[#F3F4F6]">
+              <div
+                key={exp.category_id}
+                className="flex justify-between items-center py-2 border-b border-[#F3F4F6]"
+              >
                 <span className="text-sm text-[#111827]">{exp.name}</span>
                 <span className="text-sm num neg">– € {fmt(exp.amount)}</span>
               </div>
@@ -296,10 +318,10 @@ function MonthDetail({ month }: { month: CalculatedMonth }) {
         </div>
       )}
 
-      <div className="pt-2 border-t border-[#E5E7EB] space-y-1.5">
+      <div className="pt-2 border-t border-[#E5E7EB] space-y-2">
         <div className="flex justify-between items-center">
-          <span className="text-sm font-semibold text-[#111827]">Ergebnis</span>
-          <span className={`text-sm font-bold num ${month.result >= 0 ? 'pos' : 'neg'}`}>
+          <span className="text-sm font-semibold text-[#111827]">Monatsergebnis</span>
+          <span className={`text-base font-bold num ${month.result >= 0 ? 'pos' : 'neg'}`}>
             {month.result >= 0 ? '+' : '–'} € {fmt(Math.abs(month.result))}
           </span>
         </div>

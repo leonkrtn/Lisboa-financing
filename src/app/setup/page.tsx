@@ -68,9 +68,9 @@ function GeneralSection() {
   if (loading) return <Spinner />
 
   return (
-    <div className="bg-white rounded-xl border border-[#E5E7EB] p-5 space-y-5">
+    <div className="card p-5 space-y-5">
       <div className="flex items-center justify-between">
-        <p className="text-xs font-semibold uppercase tracking-wider text-[#6B7280]">Planungszeitraum</p>
+        <p className="section-label">Planungszeitraum</p>
         {saved && <span className="text-xs text-[#059669]">Gespeichert</span>}
       </div>
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -167,14 +167,14 @@ function IncomeSection() {
       </div>
 
       {types.length === 0 && (
-        <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center text-sm text-[#9CA3AF]">
+        <div className="card p-8 text-center text-sm text-[#9CA3AF]">
           Noch keine Einnahmearten. Füge deine erste hinzu.
         </div>
       )}
 
       <div className="space-y-2">
         {types.map(t => (
-          <div key={t.id} className="bg-white rounded-xl border border-[#E5E7EB] p-4 flex items-center gap-4">
+          <div key={t.id} className="card p-4 flex items-center gap-4">
             <div className="flex-1 min-w-0">
               <p className="font-medium text-sm text-[#111827]">{t.name}</p>
               <p className="text-xs text-[#6B7280] mt-0.5">
@@ -189,7 +189,7 @@ function IncomeSection() {
             </div>
             <div className="flex gap-1 shrink-0">
               <button onClick={() => openEdit(t)} className="btn-ghost text-xs">Bearbeiten</button>
-              <button onClick={() => del(t.id)} className="btn-ghost text-xs text-[#DC2626]">Löschen</button>
+              <button onClick={() => del(t.id)} className="btn-danger text-xs">Löschen</button>
             </div>
           </div>
         ))}
@@ -334,14 +334,14 @@ function ExpensesSection() {
       </div>
 
       {cats.length === 0 && (
-        <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center text-sm text-[#9CA3AF]">
+        <div className="card p-8 text-center text-sm text-[#9CA3AF]">
           Noch keine Ausgabenkategorien. Füge z.B. Miete, Lebensmittel oder Versicherung hinzu.
         </div>
       )}
 
       <div className="space-y-2">
         {cats.map(c => (
-          <div key={c.id} className="bg-white rounded-xl border border-[#E5E7EB] p-4 flex items-center gap-4">
+          <div key={c.id} className="card p-4 flex items-center gap-4">
             <div className="flex-1 min-w-0">
               <p className="font-medium text-sm text-[#111827]">{c.name}</p>
               <p className="text-xs text-[#6B7280] mt-0.5">
@@ -358,7 +358,7 @@ function ExpensesSection() {
             </div>
             <div className="flex gap-1 shrink-0">
               <button onClick={() => openEdit(c)} className="btn-ghost text-xs">Bearbeiten</button>
-              <button onClick={() => del(c.id)} className="btn-ghost text-xs text-[#DC2626]">Löschen</button>
+              <button onClick={() => del(c.id)} className="btn-danger text-xs">Löschen</button>
             </div>
           </div>
         ))}
@@ -561,7 +561,7 @@ function InternshipsSection() {
       )}
 
       {internships.length === 0 && (
-        <div className="bg-white rounded-xl border border-[#E5E7EB] p-8 text-center text-sm text-[#9CA3AF]">
+        <div className="card p-8 text-center text-sm text-[#9CA3AF]">
           Noch keine Internships konfiguriert.
         </div>
       )}
@@ -570,7 +570,7 @@ function InternshipsSection() {
         {internships.map(intern => {
           const myOverrides = overrides.filter(o => o.internship_id === intern.id)
           return (
-            <div key={intern.id} className="bg-white rounded-xl border border-[#E5E7EB] p-4">
+            <div key={intern.id} className="card p-4">
               <div className="flex items-start gap-4">
                 <div className="flex-1 min-w-0">
                   <p className="font-medium text-sm text-[#111827]">{intern.name}</p>
@@ -594,7 +594,7 @@ function InternshipsSection() {
                     </button>
                   )}
                   <button onClick={() => openEdit(intern)} className="btn-ghost text-xs">Bearbeiten</button>
-                  <button onClick={() => del(intern.id)} className="btn-ghost text-xs text-[#DC2626]">Löschen</button>
+                  <button onClick={() => del(intern.id)} className="btn-danger text-xs">Löschen</button>
                 </div>
               </div>
               {myOverrides.length > 0 && (
