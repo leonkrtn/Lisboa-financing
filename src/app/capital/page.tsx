@@ -117,7 +117,7 @@ export default function CapitalPage() {
   }
 
   const catSum = (key: Category) =>
-    items.filter(i => i.category === key).reduce((s, i) => s + (i.amount || 0), 0)
+    items.filter(i => i.category === key).reduce((s, i) => s + (Number(i.amount) || 0), 0)
 
   if (loading) return <Center>Laden…</Center>
 

@@ -540,9 +540,9 @@ function InternshipsSection() {
 
   const internshipIncome = (intern: Internship) => {
     if (intern.income_mode === 'hourly') {
-      return intern.hours_per_week * intern.salary_per_hour * (1 - intern.tax_rate) * (52 / 12)
+      return Number(intern.hours_per_week) * Number(intern.salary_per_hour) * (1 - Number(intern.tax_rate)) * (52 / 12)
     }
-    return intern.manual_salary
+    return Number(intern.manual_salary)
   }
 
   if (loading) return <Spinner />

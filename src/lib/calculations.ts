@@ -11,6 +11,13 @@ import type {
 
 const WEEKS_PER_MONTH = 52 / 12
 
+// Supabase returns NUMERIC columns as strings to preserve precision.
+// This helper safely coerces any value to a finite number.
+function n(v: unknown): number {
+  const x = Number(v)
+  return isFinite(x) ? x : 0
+}
+
 // Timezone-safe: avoids UTC-midnight shifting in western timezones
 function parseDate(dateStr: string): Date {
   const [y, m, d] = dateStr.split('-').map(Number)
@@ -65,25 +72,15 @@ function getInternshipRatio(monthDateStr: string, internship: Internship): numbe
 }
 
 export function computeIncomeForType(incomeType: IncomeType): number {
-  if (incomeType.type === 'manual') return incomeType.manual_amount || 0
-  return (
-    (incomeType.hours_per_week || 0) *
-    (incomeType.salary_per_hour || 0) *
-    (1 - (incomeType.tax_rate || 0)) *
-    WEEKS_PER_MONTH
-  )
+  if (incomeType.type === 'manual') return n(incomeType.manual_amount)
+  return n(incomeType.hours_per_week) * n(incomeType.salary_per_hour) * (1 - n(incomeType.tax_rate)) * WEEKS_PER_MONTH
 }
 
 function computeInternshipIncome(internship: Internship): number {
   if (internship.income_mode === 'hourly') {
-    return (
-      (internship.hours_per_week || 0) *
-      (internship.salary_per_hour || 0) *
-      (1 - (internship.tax_rate || 0)) *
-      WEEKS_PER_MONTH
-    )
+    return n(internship.hours_per_week) * n(internship.salary_per_hour) * (1 - n(internship.tax_rate)) * WEEKS_PER_MONTH
   }
-  return internship.manual_salary || 0
+  return n(internship.manual_salary)
 }
 
 // overrideAmount replaces default_amount for monthly/daily types.
@@ -94,7 +91,7 @@ function computeExpenseAmount(
   daysInMonth: number,
   overrideAmount?: number
 ): number {
-  const base = (overrideAmount !== undefined ? overrideAmount : category.default_amount) || 0
+  const base = overrideAmount !== undefined ? n(overrideAmount) : n(category.default_amount)
   switch (category.type) {
     case 'monthly':
       return base
@@ -102,13 +99,11 @@ function computeExpenseAmount(
       return base * daysInMonth
     case 'once':
       if (!category.once_month) return 0
-      return category.once_month.slice(0, 7) === monthDateStr.slice(0, 7)
-        ? (category.default_amount || 0)
-        : 0
+      return category.once_month.slice(0, 7) === monthDateStr.slice(0, 7) ? n(category.default_amount) : 0
     case 'yearly': {
       if (!category.yearly_month) return 0
       const monthNum = parseInt(monthDateStr.split('-')[1], 10)
-      return monthNum === category.yearly_month ? (category.default_amount || 0) : 0
+      return monthNum === n(category.yearly_month) ? n(category.default_amount) : 0
     }
     default:
       return 0
@@ -117,7 +112,7 @@ function computeExpenseAmount(
 
 export function calculateNetCapital(capitalItems: CapitalItem[]): number {
   return capitalItems.reduce((sum, item) => {
-    const amount = item.amount || 0
+    const amount = n(item.amount)
     if (item.category === 'Cash' || item.category === 'Receivables') return sum + amount
     return sum - amount
   }, 0)
@@ -145,7 +140,7 @@ export function calculateMonths(
   // overrideKey = "internship_id:category_id"
   const overrideMap = new Map<string, number>()
   for (const o of internshipOverrides) {
-    overrideMap.set(`${o.internship_id}:${o.expense_category_id}`, o.amount || 0)
+    overrideMap.set(`${o.internship_id}:${o.expense_category_id}`, n(o.amount))
   }
 
   const netCapital = calculateNetCapital(capitalItems)
