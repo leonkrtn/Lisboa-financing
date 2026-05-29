@@ -1,370 +1,279 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
-import InlineEdit from '@/components/InlineEdit'
-import { fmt } from '@/lib/calculations'
+import { useCallback, useEffect, useState } from 'react'
 import type { CalculatedMonth, IncomeType } from '@/types'
+import { fmt } from '@/lib/calculations'
 
-type FilterType = 'all' | 'future' | 'past' | 'internship'
-type SortKey = 'month_date' | 'salary' | 'result' | 'savings'
-type SortDir = 'asc' | 'desc'
+type EditState = { monthDate: string; field: string; value: string } | null
 
 export default function MonthsPage() {
   const [months, setMonths] = useState<CalculatedMonth[]>([])
   const [incomeTypes, setIncomeTypes] = useState<IncomeType[]>([])
   const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [filter, setFilter] = useState<FilterType>('all')
-  const [sortKey, setSortKey] = useState<SortKey>('month_date')
-  const [sortDir, setSortDir] = useState<SortDir>('asc')
+  const [edit, setEdit] = useState<EditState>(null)
+  const [saving, setSaving] = useState(false)
 
-  const fetchData = useCallback(async () => {
-    try {
-      const [calcRes, itRes] = await Promise.all([
-        fetch('/api/months/calculated'),
-        fetch('/api/income-types'),
-      ])
-      const calcData = await calcRes.json()
-      const itData = await itRes.json()
-      if (Array.isArray(calcData)) setMonths(calcData)
-      if (Array.isArray(itData)) setIncomeTypes(itData)
-    } catch {
-      setError('Failed to load data')
-    } finally {
-      setLoading(false)
-    }
+  const load = useCallback(async () => {
+    const [mRes, itRes] = await Promise.all([
+      fetch('/api/months/calculated'),
+      fetch('/api/income-types'),
+    ])
+    setMonths(await mRes.json())
+    setIncomeTypes(await itRes.json())
+    setLoading(false)
   }, [])
 
-  useEffect(() => {
-    fetchData()
-  }, [fetchData])
+  useEffect(() => { load() }, [load])
 
-  async function saveMonthField(month: CalculatedMonth, field: string, value: string) {
-    const body: Record<string, string | number | boolean | null> = {
-      month_date: month.month_date,
-      income_type_id: month.income_type_id,
-      manual_salary: month.manual_salary,
-      tuition_fee: month.tuition_fee,
-      annual_fee: month.annual_fee,
-      adjustment: month.adjustment,
-      has_flight: month.has_flight,
-    }
-
-    if (field === 'income_type_id') body.income_type_id = value || null
-    else if (field === 'manual_salary') body.manual_salary = value === '' ? null : Number(value)
-    else if (field === 'has_flight') body.has_flight = value === 'true'
-    else if (field === 'tuition_fee') body.tuition_fee = Number(value) || 0
-    else if (field === 'annual_fee') body.annual_fee = Number(value) || 0
-    else if (field === 'adjustment') body.adjustment = Number(value) || 0
-
-    await fetch('/api/months', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    })
-
-    await fetchData()
-  }
-
-  function handleSort(key: SortKey) {
-    if (sortKey === key) {
-      setSortDir(prev => (prev === 'asc' ? 'desc' : 'asc'))
+  async function save(month: CalculatedMonth, field: string, value: unknown) {
+    setSaving(true)
+    if (month.month_id) {
+      await fetch(`/api/months/${month.month_id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ [field]: value }),
+      })
     } else {
-      setSortKey(key)
-      setSortDir('asc')
+      await fetch('/api/months', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ month_date: month.month_date, [field]: value }),
+      })
+    }
+    await load()
+    setSaving(false)
+  }
+
+  function startEdit(month: CalculatedMonth, field: string, current: string) {
+    setEdit({ monthDate: month.month_date, field, value: current })
+  }
+
+  function commit(month: CalculatedMonth) {
+    if (!edit) return
+    const e = edit
+    setEdit(null)
+    if (e.field === 'manual_salary') {
+      const value = e.value.trim() === '' ? null : parseFloat(e.value)
+      save(month, e.field, value)
+    } else {
+      save(month, e.field, parseFloat(e.value) || 0)
     }
   }
 
-  function sortIndicator(key: SortKey) {
-    if (sortKey !== key) return null
-    return sortDir === 'asc' ? ' ▲' : ' ▼'
+  function isEd(m: CalculatedMonth, field: string) {
+    return edit?.monthDate === m.month_date && edit.field === field
   }
-
-  const incomeTypeOptions = incomeTypes.map(it => ({
-    value: it.id,
-    label: it.name,
-  }))
-
-  const today = new Date().toISOString().slice(0, 10)
-  const todayMonth = today.slice(0, 7) + '-01'
-
-  // Filter
-  const filtered = months.filter(m => {
-    if (filter === 'future') return m.month_date >= todayMonth
-    if (filter === 'past') return m.month_date < todayMonth
-    if (filter === 'internship') return m.internship !== null
-    return true
-  })
-
-  // Sort
-  const sorted = [...filtered].sort((a, b) => {
-    let aVal: number | string = 0
-    let bVal: number | string = 0
-    if (sortKey === 'month_date') {
-      aVal = a.month_date
-      bVal = b.month_date
-    } else if (sortKey === 'salary') {
-      aVal = a.salary
-      bVal = b.salary
-    } else if (sortKey === 'result') {
-      aVal = a.result
-      bVal = b.result
-    } else if (sortKey === 'savings') {
-      aVal = a.savings
-      bVal = b.savings
-    }
-    if (aVal < bVal) return sortDir === 'asc' ? -1 : 1
-    if (aVal > bVal) return sortDir === 'asc' ? 1 : -1
-    return 0
-  })
-
-  const filterButtons: { key: FilterType; label: string }[] = [
-    { key: 'all', label: 'All' },
-    { key: 'future', label: 'Future' },
-    { key: 'past', label: 'Past' },
-    { key: 'internship', label: 'Internship Months' },
-  ]
 
   if (loading) {
-    return (
-      <div className="p-6 md:p-8">
-        <h1 className="text-2xl font-bold text-[#0F172A] mb-6">Months</h1>
-        <div className="card h-48 animate-pulse bg-[#F1F5F9]" />
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="p-6 md:p-8">
-        <h1 className="text-2xl font-bold text-[#0F172A] mb-4">Months</h1>
-        <div className="text-[#DC2626] text-sm bg-[#FEF2F2] border border-red-200 rounded-lg px-4 py-3">{error}</div>
-      </div>
-    )
+    return <div className="flex h-64 items-center justify-center text-sm text-[#9CA3AF]">Loading…</div>
   }
 
   return (
-    <div className="p-6 md:p-8">
-      <h1 className="text-2xl font-bold text-[#0F172A] mb-6">Months</h1>
-
-      {/* Filter bar */}
-      <div className="flex items-center gap-2 flex-wrap mb-5">
-        {filterButtons.map(btn => (
-          <button
-            key={btn.key}
-            onClick={() => setFilter(btn.key)}
-            className={`px-4 py-1.5 text-sm rounded-lg font-medium transition-colors ${
-              filter === btn.key
-                ? 'bg-[#1E3A8A] text-white'
-                : 'border border-[#E2E8F0] text-[#0F172A] hover:bg-[#F1F5F9]'
-            }`}
-          >
-            {btn.label}
-          </button>
-        ))}
-        <span className="ml-auto text-xs text-[#64748B]">
-          {sorted.length} month{sorted.length !== 1 ? 's' : ''}
+    <div className="flex flex-col" style={{ height: 'calc(100vh - 48px)' }}>
+      {/* Sub-header */}
+      <div className="shrink-0 px-4 py-2 border-b border-[#E5E7EB] bg-white flex items-center justify-between">
+        <h1 className="text-sm font-semibold">Monthly Planner</h1>
+        <span className="text-xs text-[#9CA3AF]">
+          {saving ? 'Saving…' : 'Click a cell to edit · Salary: empty = clear override'}
         </span>
       </div>
 
-      <p className="text-xs text-[#64748B] mb-4">
-        Click any editable cell (Income Type, Manual Salary, Has Flight, Tuition, Annual Fee, Adjustment) to edit inline.
-      </p>
+      {/* Scrollable table */}
+      <div className="flex-1 overflow-auto">
+        <table className="text-sm border-separate border-spacing-0" style={{ minWidth: 1180 }}>
+          <thead className="sticky top-0 z-20">
+            <tr>
+              <th className="t-head px-3 py-2 text-left sticky left-0 z-30 bg-[#F9FAFB]">Month</th>
+              <th className="t-head px-3 py-2 text-left">Type</th>
+              <th className="t-head px-3 py-2 text-right">Salary</th>
+              <th className="t-head px-3 py-2 text-right">Support</th>
+              <th className="t-head px-3 py-2 text-right">Rent</th>
+              <th className="t-head px-3 py-2 text-right">Food</th>
+              <th className="t-head px-3 py-2 text-right">Fun</th>
+              <th className="t-head px-3 py-2 text-right">Other</th>
+              <th className="t-head px-3 py-2 text-right">Ins</th>
+              <th className="t-head px-3 py-2 text-center">✈</th>
+              <th className="t-head px-3 py-2 text-right">Tuition</th>
+              <th className="t-head px-3 py-2 text-right">Annual</th>
+              <th className="t-head px-3 py-2 text-right">Adj</th>
+              <th className="t-head px-3 py-2 text-right">Result</th>
+              <th className="t-head px-3 py-2 text-right">Savings</th>
+            </tr>
+          </thead>
+          <tbody>
+            {months.map(m => {
+              const isIntern = !!m.internship
+              const stickyBg = isIntern ? '#FFFBEB' : '#FFFFFF'
 
-      <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="border-collapse" style={{ minWidth: '1200px' }}>
-            <thead>
-              <tr>
-                <th
-                  className="th sortable sticky left-0 z-10 bg-[#F1F5F9]"
-                  onClick={() => handleSort('month_date')}
-                >
-                  Month{sortIndicator('month_date')}
-                </th>
-                <th className="th">Income Type</th>
-                <th
-                  className="th sortable"
-                  onClick={() => handleSort('salary')}
-                >
-                  Manual Salary{sortIndicator('salary')}
-                </th>
-                <th className="th">Has Flight</th>
-                <th className="th">Tuition Fee</th>
-                <th className="th">Annual Fee</th>
-                <th className="th">Adjustment</th>
-                <th
-                  className="th sortable text-right"
-                  onClick={() => handleSort('salary')}
-                >
-                  [Salary]{sortIndicator('salary')}
-                </th>
-                <th className="th text-right">[Support]</th>
-                <th className="th text-right">[Rent]</th>
-                <th className="th text-right">[Food]</th>
-                <th className="th text-right">[Fun]</th>
-                <th className="th text-right">[Insurance]</th>
-                <th className="th text-right">[Flights]</th>
-                <th className="th text-right">[Other]</th>
-                <th
-                  className="th sortable text-right"
-                  onClick={() => handleSort('result')}
-                >
-                  [Result]{sortIndicator('result')}
-                </th>
-                <th
-                  className="th sortable text-right"
-                  onClick={() => handleSort('savings')}
-                >
-                  [Savings]{sortIndicator('savings')}
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {sorted.map(m => {
-                const isInternship = m.internship !== null
-                const stickyBg = isInternship ? '#EFF6FF' : undefined
-                return (
-                  <tr key={m.month_date}>
-                    {/* Month - sticky */}
+              return (
+                <tr key={m.month_date} className={`t-row${isIntern ? ' bg-amber-50' : ''}`}>
+                  {/* Month — sticky left */}
+                  <td
+                    className="t-cell px-3 py-1.5 font-medium whitespace-nowrap sticky left-0 z-10"
+                    style={{ background: stickyBg }}
+                  >
+                    {m.label}
+                  </td>
+
+                  {/* Type */}
+                  <td className="t-cell px-2 py-1">
+                    {isIntern ? (
+                      <span className="text-xs bg-amber-100 text-amber-700 rounded px-1.5 py-0.5 whitespace-nowrap">
+                        {m.internship!.name}
+                      </span>
+                    ) : (
+                      <select
+                        value={m.income_type_id ?? ''}
+                        onChange={e => save(m, 'income_type_id', e.target.value || null)}
+                        className="field py-0.5 text-xs"
+                        style={{ minWidth: 110 }}
+                      >
+                        <option value="">—</option>
+                        {incomeTypes.map(it => (
+                          <option key={it.id} value={it.id}>{it.name}</option>
+                        ))}
+                      </select>
+                    )}
+                  </td>
+
+                  {/* Salary — manual override editable */}
+                  {isEd(m, 'manual_salary') ? (
+                    <td className="t-cell px-0 py-0">
+                      <input
+                        type="number"
+                        autoFocus
+                        placeholder="auto"
+                        value={edit!.value}
+                        onChange={e => setEdit(prev => prev ? { ...prev, value: e.target.value } : prev)}
+                        onBlur={() => commit(m)}
+                        onKeyDown={e => { if (e.key === 'Enter') commit(m); if (e.key === 'Escape') setEdit(null) }}
+                        className="editing w-full px-3 py-1.5 text-sm text-right num"
+                        style={{ minWidth: 80 }}
+                      />
+                    </td>
+                  ) : (
                     <td
-                      className="td sticky left-0 z-10 font-medium"
-                      style={{ backgroundColor: stickyBg ?? (undefined) }}
+                      className={`t-cell px-3 py-1.5 num text-right editable ${m.salary > 0 ? 'pos' : ''} ${m.manual_salary != null ? 'underline decoration-dotted underline-offset-2' : ''}`}
+                      title={m.manual_salary != null ? 'Manual — click to change, clear to reset' : 'Click to override salary'}
+                      onClick={() => startEdit(m, 'manual_salary', m.manual_salary != null ? String(m.manual_salary) : '')}
                     >
-                      <div className="flex flex-col">
-                        <span>{m.label}</span>
-                        {isInternship && (
-                          <span className="text-xs text-[#1E3A8A] font-normal">{m.internship!.name}</span>
-                        )}
-                      </div>
+                      {fmt(m.salary)}
+                      {m.manual_salary != null && <span className="ml-1 text-[10px] text-[#9CA3AF]">M</span>}
                     </td>
+                  )}
 
-                    {/* Income Type */}
-                    <td className="td p-0 hover:bg-[#EFF6FF]">
-                      {isInternship ? (
-                        <span className="px-4 py-2 text-xs text-[#1E3A8A] italic block">Internship</span>
-                      ) : (
-                        <InlineEdit
-                          value={m.income_type_id ?? ''}
-                          type="select"
-                          options={incomeTypeOptions}
-                          onSave={v => saveMonthField(m, 'income_type_id', v)}
-                          className="px-4 py-2"
-                          format={() => m.income_type ? m.income_type.name : '—'}
-                        />
-                      )}
-                    </td>
+                  {/* Support */}
+                  <td className={`t-cell px-3 py-1.5 num text-right ${m.support > 0 ? 'pos' : 'text-[#9CA3AF]'}`}>
+                    {fmt(m.support)}
+                  </td>
 
-                    {/* Manual Salary */}
-                    <td className="td p-0 hover:bg-[#EFF6FF]">
-                      {isInternship ? (
-                        <span className="px-4 py-2 text-xs text-[#64748B] block">—</span>
-                      ) : (
-                        <InlineEdit
-                          value={m.manual_salary}
-                          type="number"
-                          onSave={v => saveMonthField(m, 'manual_salary', v)}
-                          className="px-4 py-2"
-                          format={v => (v === null || v === undefined || v === '') ? '—' : `€ ${fmt(Number(v))}`}
-                        />
-                      )}
-                    </td>
+                  {/* Rent */}
+                  <td className="t-cell px-3 py-1.5 num text-right neg">{fmt(m.rent)}</td>
 
-                    {/* Has Flight */}
-                    <td className="td p-0 hover:bg-[#EFF6FF]">
-                      <InlineEdit
-                        value={m.has_flight}
-                        type="boolean"
-                        onSave={v => saveMonthField(m, 'has_flight', v)}
-                        className="px-4 py-2"
-                      />
-                    </td>
+                  {/* Food */}
+                  <td className="t-cell px-3 py-1.5 num text-right neg">{fmt(m.food)}</td>
 
-                    {/* Tuition Fee */}
-                    <td className="td p-0 hover:bg-[#EFF6FF]">
-                      <InlineEdit
-                        value={m.tuition_fee}
+                  {/* Fun */}
+                  <td className="t-cell px-3 py-1.5 num text-right neg">{fmt(m.fun)}</td>
+
+                  {/* Other */}
+                  <td className="t-cell px-3 py-1.5 num text-right neg">{fmt(m.other)}</td>
+
+                  {/* Insurance */}
+                  <td className="t-cell px-3 py-1.5 num text-right neg">{fmt(m.insurance)}</td>
+
+                  {/* Flight toggle */}
+                  <td className="t-cell px-3 py-1.5 text-center">
+                    <input
+                      type="checkbox"
+                      checked={m.has_flight}
+                      onChange={e => save(m, 'has_flight', e.target.checked)}
+                      className="w-4 h-4 accent-[#1E3A8A] cursor-pointer"
+                    />
+                  </td>
+
+                  {/* Tuition — editable */}
+                  {isEd(m, 'tuition_fee') ? (
+                    <td className="t-cell px-0 py-0">
+                      <input
                         type="number"
-                        onSave={v => saveMonthField(m, 'tuition_fee', v)}
-                        className="px-4 py-2"
-                        format={v => v ? `€ ${fmt(Number(v))}` : '—'}
+                        autoFocus
+                        value={edit!.value}
+                        onChange={e => setEdit(prev => prev ? { ...prev, value: e.target.value } : prev)}
+                        onBlur={() => commit(m)}
+                        onKeyDown={e => { if (e.key === 'Enter') commit(m); if (e.key === 'Escape') setEdit(null) }}
+                        className="editing w-full px-3 py-1.5 text-sm text-right num"
+                        style={{ minWidth: 80 }}
                       />
                     </td>
+                  ) : (
+                    <td
+                      className="t-cell px-3 py-1.5 num text-right editable neg"
+                      onClick={() => startEdit(m, 'tuition_fee', String(m.tuition_fee || 0))}
+                    >
+                      {fmt(m.tuition_fee)}
+                    </td>
+                  )}
 
-                    {/* Annual Fee */}
-                    <td className="td p-0 hover:bg-[#EFF6FF]">
-                      <InlineEdit
-                        value={m.annual_fee}
+                  {/* Annual — editable */}
+                  {isEd(m, 'annual_fee') ? (
+                    <td className="t-cell px-0 py-0">
+                      <input
                         type="number"
-                        onSave={v => saveMonthField(m, 'annual_fee', v)}
-                        className="px-4 py-2"
-                        format={v => v ? `€ ${fmt(Number(v))}` : '—'}
+                        autoFocus
+                        value={edit!.value}
+                        onChange={e => setEdit(prev => prev ? { ...prev, value: e.target.value } : prev)}
+                        onBlur={() => commit(m)}
+                        onKeyDown={e => { if (e.key === 'Enter') commit(m); if (e.key === 'Escape') setEdit(null) }}
+                        className="editing w-full px-3 py-1.5 text-sm text-right num"
+                        style={{ minWidth: 80 }}
                       />
                     </td>
+                  ) : (
+                    <td
+                      className="t-cell px-3 py-1.5 num text-right editable neg"
+                      onClick={() => startEdit(m, 'annual_fee', String(m.annual_fee || 0))}
+                    >
+                      {fmt(m.annual_fee)}
+                    </td>
+                  )}
 
-                    {/* Adjustment */}
-                    <td className="td p-0 hover:bg-[#EFF6FF]">
-                      <InlineEdit
-                        value={m.adjustment}
+                  {/* Adjustment — editable */}
+                  {isEd(m, 'adjustment') ? (
+                    <td className="t-cell px-0 py-0">
+                      <input
                         type="number"
-                        onSave={v => saveMonthField(m, 'adjustment', v)}
-                        className="px-4 py-2"
-                        format={v => v ? `€ ${fmt(Number(v))}` : '—'}
+                        autoFocus
+                        value={edit!.value}
+                        onChange={e => setEdit(prev => prev ? { ...prev, value: e.target.value } : prev)}
+                        onBlur={() => commit(m)}
+                        onKeyDown={e => { if (e.key === 'Enter') commit(m); if (e.key === 'Escape') setEdit(null) }}
+                        className="editing w-full px-3 py-1.5 text-sm text-right num"
+                        style={{ minWidth: 80 }}
                       />
                     </td>
-
-                    {/* Calculated: Salary */}
-                    <td className="td text-right">€ {fmt(m.salary)}</td>
-
-                    {/* Calculated: Support */}
-                    <td className="td text-right">
-                      {m.support > 0 ? `€ ${fmt(m.support)}` : '—'}
+                  ) : (
+                    <td
+                      className="t-cell px-3 py-1.5 num text-right editable"
+                      onClick={() => startEdit(m, 'adjustment', String(m.adjustment || 0))}
+                    >
+                      {fmt(m.adjustment)}
                     </td>
+                  )}
 
-                    {/* Calculated: Rent */}
-                    <td className="td text-right">
-                      {m.rent > 0 ? `€ ${fmt(m.rent)}` : '—'}
-                    </td>
+                  {/* Result */}
+                  <td className={`t-cell px-3 py-1.5 num text-right font-semibold ${m.result >= 0 ? 'pos' : 'neg'}`}>
+                    {m.result >= 0 ? '+' : '–'}{fmt(Math.abs(m.result))}
+                  </td>
 
-                    {/* Calculated: Food */}
-                    <td className="td text-right">
-                      {m.food > 0 ? `€ ${fmt(m.food)}` : '—'}
-                    </td>
-
-                    {/* Calculated: Fun */}
-                    <td className="td text-right">
-                      {m.fun > 0 ? `€ ${fmt(m.fun)}` : '—'}
-                    </td>
-
-                    {/* Calculated: Insurance */}
-                    <td className="td text-right">
-                      {m.insurance > 0 ? `€ ${fmt(m.insurance)}` : '—'}
-                    </td>
-
-                    {/* Calculated: Flights */}
-                    <td className="td text-right">
-                      {m.flights > 0 ? `€ ${fmt(m.flights)}` : '—'}
-                    </td>
-
-                    {/* Calculated: Other */}
-                    <td className="td text-right">
-                      {m.other > 0 ? `€ ${fmt(m.other)}` : '—'}
-                    </td>
-
-                    {/* Calculated: Result */}
-                    <td className={`td text-right font-medium ${m.result >= 0 ? 'positive' : 'negative'}`}>
-                      € {fmt(m.result)}
-                    </td>
-
-                    {/* Calculated: Savings */}
-                    <td className={`td text-right font-medium ${m.savings >= 0 ? 'positive' : 'negative'}`}>
-                      € {fmt(m.savings)}
-                    </td>
-                  </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
+                  {/* Savings */}
+                  <td className={`t-cell px-3 py-1.5 num text-right font-bold ${m.savings >= 0 ? 'pos' : 'neg'}`}>
+                    {fmt(m.savings)}
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </div>
     </div>
   )

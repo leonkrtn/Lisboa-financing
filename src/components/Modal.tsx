@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useRef } from 'react'
+import { useEffect } from 'react'
 
 interface ModalProps {
   open: boolean
@@ -9,65 +9,39 @@ interface ModalProps {
 }
 
 export default function Modal({ open, onClose, title, children }: ModalProps) {
-  const panelRef = useRef<HTMLDivElement>(null)
-
   useEffect(() => {
     if (!open) return
-    const handleKeyDown = (e: KeyboardEvent) => {
+    function onKey(e: KeyboardEvent) {
       if (e.key === 'Escape') onClose()
     }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
+    document.addEventListener('keydown', onKey)
+    return () => document.removeEventListener('keydown', onKey)
   }, [open, onClose])
-
-  useEffect(() => {
-    if (open) {
-      panelRef.current?.focus()
-    }
-  }, [open])
 
   if (!open) return null
 
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      aria-modal="true"
-      role="dialog"
-      aria-labelledby="modal-title"
+      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4"
+      onClick={onClose}
     >
-      {/* Backdrop */}
       <div
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
-        onClick={onClose}
-        aria-hidden="true"
-      />
-
-      {/* Panel */}
-      <div
-        ref={panelRef}
-        tabIndex={-1}
-        className="relative z-10 w-full max-w-lg mx-4 bg-white rounded-xl shadow-2xl outline-none max-h-[90vh] flex flex-col"
+        className="bg-white rounded-lg shadow-xl max-w-md w-full p-6 max-h-[90vh] overflow-y-auto"
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-[#E2E8F0] shrink-0">
-          <h2 id="modal-title" className="text-lg font-semibold text-[#0F172A]">
-            {title}
-          </h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-base font-semibold text-[#111827]">{title}</h2>
           <button
             onClick={onClose}
-            className="w-8 h-8 flex items-center justify-center rounded-lg text-[#64748B] hover:text-[#0F172A] hover:bg-[#F1F5F9] transition-colors"
-            aria-label="Close modal"
+            className="text-[#9CA3AF] hover:text-[#111827] transition-colors rounded-md p-1 hover:bg-[#F3F4F6]"
+            aria-label="Close"
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-              <path d="M2 2l12 12M14 2L2 14" />
+            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-
-        {/* Scrollable content */}
-        <div className="px-6 py-5 overflow-y-auto">
-          {children}
-        </div>
+        {children}
       </div>
     </div>
   )

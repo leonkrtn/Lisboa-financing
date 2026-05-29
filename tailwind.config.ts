@@ -4,19 +4,23 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
-        blue: {
+        brand: {
           primary: '#1E3A8A',
           dark: '#172554',
-          accent: '#60A5FA',
+          light: '#EFF6FF',
+          accent: '#3B82F6',
         },
-        'off-white': '#F8FAFC',
-        subtle: '#F1F5F9',
-        border: '#E2E8F0',
-        ink: '#0F172A',
-        muted: '#64748B',
+        surface: '#F9FAFB',
+        border: '#E5E7EB',
+        'border-dark': '#D1D5DB',
+        'text-primary': '#111827',
+        'text-secondary': '#6B7280',
+        'text-muted': '#9CA3AF',
+        success: '#059669',
+        danger: '#DC2626',
+        warning: '#D97706',
       },
       fontFamily: { sans: ['Inter', 'sans-serif'] },
-      backdropBlur: { xs: '2px' },
     },
   },
   plugins: [],
