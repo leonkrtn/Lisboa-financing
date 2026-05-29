@@ -175,5 +175,5 @@ export function calculateMonths(
 }
 
 export function fmt(n: number): string {
-  return new Intl.NumberFormat('en-DE', { minimumFractionDigits: 0, maximumFractionDigits: 0 }).format(n)
+  return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
 }
