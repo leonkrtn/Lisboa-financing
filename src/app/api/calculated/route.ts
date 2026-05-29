@@ -5,7 +5,7 @@ import { calculateMonths, calculateNetCapital } from '@/lib/calculations'
 export const dynamic = 'force-dynamic'
 
 export async function GET() {
-  const [configRes, monthDataRes, internshipsRes, incomeTypesRes, expCatsRes, overridesRes, capitalRes] =
+  const [configRes, monthDataRes, internshipsRes, incomeTypesRes, expCatsRes, intOverridesRes, capitalRes, monthExpRes] =
     await Promise.all([
       supabase.from('config').select('*'),
       supabase.from('month_data').select('*'),
@@ -14,6 +14,7 @@ export async function GET() {
       supabase.from('expense_categories').select('*'),
       supabase.from('internship_expense_overrides').select('*'),
       supabase.from('capital_items').select('*'),
+      supabase.from('month_expense_overrides').select('*'),
     ])
 
   if (configRes.error) return NextResponse.json({ error: configRes.error.message }, { status: 500 })
@@ -30,8 +31,9 @@ export async function GET() {
     internshipsRes.data ?? [],
     incomeTypesRes.data ?? [],
     expenseCategories,
-    overridesRes.data ?? [],
-    capitalItems
+    intOverridesRes.data ?? [],
+    capitalItems,
+    (monthExpRes.error ? [] : (monthExpRes.data ?? []))
   )
 
   return NextResponse.json({

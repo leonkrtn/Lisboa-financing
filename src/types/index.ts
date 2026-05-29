@@ -19,6 +19,7 @@ export interface ExpenseCategory {
   default_amount: number
   once_month: string | null  // YYYY-MM-DD
   yearly_month: number | null  // 1–12
+  start_month: string | null  // YYYY-MM-DD, monthly/daily apply from this month
 }
 
 export interface CapitalItem {
@@ -54,10 +55,18 @@ export interface MonthData {
   manual_salary: number | null
 }
 
+export interface MonthExpenseOverride {
+  id: string
+  month_date: string
+  expense_category_id: string
+  amount: number
+}
+
 export interface CalculatedMonthExpense {
   category_id: string
   name: string
   amount: number
+  is_override: boolean
 }
 
 export interface CalculatedMonth {
