@@ -8,6 +8,7 @@ interface CalcResponse {
   months: CalculatedMonth[]
   expense_categories: ExpenseCategory[]
   net_capital: number
+  default_income_type_id: string | null
 }
 
 const TYPE_LABELS: Record<ExpenseCategory['type'], string> = {
@@ -22,6 +23,7 @@ export default function PlanningPage() {
   const [netCapital, setNetCapital] = useState(0)
   const [incomeTypes, setIncomeTypes] = useState<IncomeType[]>([])
   const [monthExpOverrides, setMonthExpOverrides] = useState<MonthExpenseOverride[]>([])
+  const [defaultIncomeTypeId, setDefaultIncomeTypeId] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
 
   // Income cell inline editing
@@ -59,6 +61,7 @@ export default function PlanningPage() {
       fetch('/api/month-expense-overrides').then(r => r.ok ? r.json() : []),
     ])
     setCalcData(calcRes)
+    setDefaultIncomeTypeId(calcRes.default_income_type_id ?? null)
     setIncomeTypes(Array.isArray(typesRes) ? typesRes : [])
     setMonthExpOverrides(Array.isArray(overridesRes) ? overridesRes : [])
     // Compute net capital independently from capital items (server-side may return 0 due to RLS)
@@ -165,6 +168,16 @@ export default function PlanningPage() {
     await load()
   }
 
+  async function setDefaultIT(id: string | null) {
+    setDefaultIncomeTypeId(id)
+    await fetch('/api/config', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ default_income_type_id: id ?? '' }),
+    })
+    await load()
+  }
+
   // ── Expense categories CRUD ──────────────────────────────────────────────────
   function openNewCat() { setEditingCat(null); setCatForm({ type: 'monthly', default_amount: 0 }); setCatModal(true) }
   function openEditCat(c: ExpenseCategory) { setEditingCat(c); setCatForm({ ...c }); setCatModal(true) }
@@ -199,6 +212,8 @@ export default function PlanningPage() {
     <SidePanel
       incomeTypes={incomeTypes}
       categories={categories}
+      defaultIncomeTypeId={defaultIncomeTypeId}
+      onSetDefaultIT={setDefaultIT}
       onNewIT={openNewIT} onEditIT={openEditIT} onDeleteIT={deleteIT}
       onNewCat={openNewCat} onEditCat={openEditCat} onDeleteCat={deleteCat}
     />
@@ -329,12 +344,14 @@ export default function PlanningPage() {
 // ─── Side panel ───────────────────────────────────────────────────────────────
 
 function SidePanel({
-  incomeTypes, categories,
-  onNewIT, onEditIT, onDeleteIT,
+  incomeTypes, categories, defaultIncomeTypeId,
+  onSetDefaultIT, onNewIT, onEditIT, onDeleteIT,
   onNewCat, onEditCat, onDeleteCat,
 }: {
   incomeTypes: IncomeType[]
   categories: ExpenseCategory[]
+  defaultIncomeTypeId: string | null
+  onSetDefaultIT: (id: string | null) => void
   onNewIT: () => void
   onEditIT: (it: IncomeType) => void
   onDeleteIT: (id: string) => void
@@ -350,6 +367,19 @@ function SidePanel({
           <p className="section-label">Einnahmenarten</p>
           <button onClick={onNewIT} className="text-[#1E3A8A] hover:bg-[#EFF6FF] rounded-md px-1.5 py-0.5 text-lg leading-none transition-colors" title="Neue Einnahmenart">+</button>
         </div>
+        {incomeTypes.length > 0 && (
+          <div className="mb-2">
+            <label className="block text-[10px] text-[#9CA3AF] mb-1">Standard</label>
+            <select
+              className="field text-xs w-full"
+              value={defaultIncomeTypeId ?? ''}
+              onChange={e => onSetDefaultIT(e.target.value || null)}
+            >
+              <option value="">– Keine –</option>
+              {incomeTypes.map(it => <option key={it.id} value={it.id}>{it.name}</option>)}
+            </select>
+          </div>
+        )}
         {incomeTypes.length === 0 && (
           <p className="text-xs text-[#9CA3AF] py-1">Noch keine Einnahmenarten.</p>
         )}

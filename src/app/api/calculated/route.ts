@@ -40,5 +40,6 @@ export async function GET() {
     months,
     expense_categories: expenseCategories,
     net_capital: calculateNetCapital(capitalItems),
+    default_income_type_id: config.default_income_type_id ?? null,
   })
 }

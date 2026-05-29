@@ -193,6 +193,15 @@ export function calculateMonths(
         income = computeIncomeForType(resolvedIncomeType)
         incomeLabel = resolvedIncomeType.name
       }
+    } else {
+      const defaultId = config.default_income_type_id
+      if (defaultId) {
+        resolvedIncomeType = incomeTypeMap.get(defaultId) ?? null
+        if (resolvedIncomeType) {
+          income = computeIncomeForType(resolvedIncomeType)
+          incomeLabel = resolvedIncomeType.name
+        }
+      }
     }
 
     // ── Expenses ─────────────────────────────────────────────────────────────
