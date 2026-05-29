@@ -15,13 +15,25 @@ interface CalcResponse {
 
 export default function DashboardPage() {
   const [data, setData] = useState<CalcResponse | null>(null)
+  const [netCapital, setNetCapital] = useState<number>(0)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
 
   useEffect(() => {
-    fetch('/api/calculated')
-      .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() })
-      .then(d => { setData(d); setLoading(false) })
+    Promise.all([
+      fetch('/api/calculated').then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json() }),
+      fetch('/api/capital-items').then(r => r.ok ? r.json() : []),
+    ])
+      .then(([calc, capitalItems]) => {
+        setData(calc)
+        // Compute net capital directly from capital items (Cash+Receivables − Payables−Provisions)
+        const nc = (Array.isArray(capitalItems) ? capitalItems : []).reduce((sum: number, item: {amount: number; category: string}) => {
+          const amt = Number(item.amount) || 0
+          return (item.category === 'Cash' || item.category === 'Receivables') ? sum + amt : sum - amt
+        }, 0)
+        setNetCapital(nc)
+        setLoading(false)
+      })
       .catch(e => { setErr(e.message); setLoading(false) })
   }, [])
 
@@ -29,7 +41,6 @@ export default function DashboardPage() {
   if (err) return <Center red>Fehler beim Laden der Daten ({err})</Center>
 
   const months = data?.months ?? []
-  const netCapital = data?.net_capital ?? 0
 
   if (!months.length) {
     return (

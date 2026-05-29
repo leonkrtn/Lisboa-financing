@@ -19,6 +19,7 @@ export async function POST(request: NextRequest) {
       default_amount: body.default_amount ?? 0,
       once_month: body.once_month ?? null,
       yearly_month: body.yearly_month ?? null,
+      start_month: body.start_month ?? null,
     })
     .select()
     .single()

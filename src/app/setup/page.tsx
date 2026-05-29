@@ -4,7 +4,7 @@ import { fmt, computeIncomeForType } from '@/lib/calculations'
 import type { Config, IncomeType, ExpenseCategory, Internship, InternshipExpenseOverride } from '@/types'
 import Modal from '@/components/Modal'
 
-type Tab = 'general' | 'income' | 'expenses' | 'internships'
+type Tab = 'general' | 'income' | 'internships'
 
 export default function SetupPage() {
   const [tab, setTab] = useState<Tab>('general')
@@ -18,7 +18,6 @@ export default function SetupPage() {
         {([
           { key: 'general', label: 'Allgemein' },
           { key: 'income', label: 'Einnahmearten' },
-          { key: 'expenses', label: 'Ausgabenkategorien' },
           { key: 'internships', label: 'Internships' },
         ] as { key: Tab; label: string }[]).map(t => (
           <button
@@ -37,7 +36,6 @@ export default function SetupPage() {
 
       {tab === 'general' && <GeneralSection />}
       {tab === 'income' && <IncomeSection />}
-      {tab === 'expenses' && <ExpensesSection />}
       {tab === 'internships' && <InternshipsSection />}
     </div>
   )
@@ -246,184 +244,6 @@ function IncomeSection() {
             <span className="text-xs text-[#15803D]">Netto / Monat</span>
             <span className="text-sm font-bold pos num">€ {fmt(preview)}</span>
           </div>
-
-          <div className="flex gap-2 pt-1">
-            <button onClick={submit} disabled={saving || !form.name} className="btn-primary flex-1">
-              {saving ? 'Speichern…' : editing ? 'Änderungen speichern' : 'Erstellen'}
-            </button>
-            <button onClick={() => setModalOpen(false)} className="btn-secondary">Abbruch</button>
-          </div>
-        </div>
-      </Modal>
-    </div>
-  )
-}
-
-// ─── Expense Categories ───────────────────────────────────────────────────────
-
-const TYPE_LABELS: Record<ExpenseCategory['type'], string> = {
-  monthly: 'Monatlich',
-  daily: 'Pro Tag × Tage',
-  once: 'Einmalig',
-  yearly: 'Jährlich',
-}
-
-const MONTH_NAMES = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez']
-
-function ExpensesSection() {
-  const [cats, setCats] = useState<ExpenseCategory[]>([])
-  const [loading, setLoading] = useState(true)
-  const [modalOpen, setModalOpen] = useState(false)
-  const [editing, setEditing] = useState<ExpenseCategory | null>(null)
-  const [form, setForm] = useState<Partial<ExpenseCategory>>({ type: 'monthly' })
-  const [saving, setSaving] = useState(false)
-
-  const fetch_ = useCallback(async () => {
-    const r = await fetch('/api/expense-categories')
-    setCats(await r.json())
-    setLoading(false)
-  }, [])
-
-  useEffect(() => { fetch_() }, [fetch_])
-
-  function openNew() {
-    setEditing(null)
-    setForm({ type: 'monthly', default_amount: 0 })
-    setModalOpen(true)
-  }
-
-  function openEdit(c: ExpenseCategory) {
-    setEditing(c)
-    setForm({ ...c })
-    setModalOpen(true)
-  }
-
-  async function submit() {
-    setSaving(true)
-    const url = editing ? `/api/expense-categories/${editing.id}` : '/api/expense-categories'
-    const method = editing ? 'PATCH' : 'POST'
-    await fetch(url, {
-      method,
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        name: form.name,
-        type: form.type,
-        default_amount: form.default_amount ?? 0,
-        once_month: form.type === 'once' ? (form.once_month ?? null) : null,
-        yearly_month: form.type === 'yearly' ? (form.yearly_month ?? null) : null,
-      }),
-    })
-    setModalOpen(false)
-    await fetch_()
-    setSaving(false)
-  }
-
-  async function del(id: string) {
-    if (!confirm('Kategorie löschen? Das entfernt auch alle Internship-Überschreibungen für diese Kategorie.')) return
-    await fetch(`/api/expense-categories/${id}`, { method: 'DELETE' })
-    await fetch_()
-  }
-
-  if (loading) return <Spinner />
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-[#6B7280]">{cats.length} Kategorie{cats.length !== 1 ? 'n' : ''}</p>
-        <button onClick={openNew} className="btn-primary">+ Neue Kategorie</button>
-      </div>
-
-      {cats.length === 0 && (
-        <div className="card p-8 text-center text-sm text-[#9CA3AF]">
-          Noch keine Ausgabenkategorien. Füge z.B. Miete, Lebensmittel oder Versicherung hinzu.
-        </div>
-      )}
-
-      <div className="space-y-2">
-        {cats.map(c => (
-          <div key={c.id} className="card p-4 flex items-center gap-4">
-            <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm text-[#111827]">{c.name}</p>
-              <p className="text-xs text-[#6B7280] mt-0.5">
-                {TYPE_LABELS[c.type]}
-                {c.type === 'once' && c.once_month && ` · ${c.once_month.slice(0, 7)}`}
-                {c.type === 'yearly' && c.yearly_month && ` · jeden ${MONTH_NAMES[(c.yearly_month - 1) % 12]}`}
-              </p>
-            </div>
-            <div className="text-right shrink-0">
-              <p className="text-sm font-semibold neg num">€ {fmt(c.default_amount)}</p>
-              <p className="text-xs text-[#9CA3AF]">
-                {c.type === 'daily' ? '/ Tag' : '/ Monat'}
-              </p>
-            </div>
-            <div className="flex gap-1 shrink-0">
-              <button onClick={() => openEdit(c)} className="btn-ghost text-xs">Bearbeiten</button>
-              <button onClick={() => del(c.id)} className="btn-danger text-xs">Löschen</button>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      <Modal open={modalOpen} onClose={() => setModalOpen(false)} title={editing ? 'Kategorie bearbeiten' : 'Neue Ausgabenkategorie'}>
-        <div className="space-y-4">
-          <div>
-            <label className="block text-xs font-medium text-[#6B7280] mb-1">Name</label>
-            <input className="field" value={form.name ?? ''} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} placeholder="z.B. Miete, Lebensmittel, Versicherung…" />
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-[#6B7280] mb-2">Typ</label>
-            <div className="grid grid-cols-2 gap-2">
-              {(['monthly', 'daily', 'once', 'yearly'] as const).map(t => (
-                <button
-                  key={t}
-                  onClick={() => setForm(f => ({ ...f, type: t }))}
-                  className={`py-2 px-3 text-sm rounded-lg border transition-colors text-left ${
-                    form.type === t
-                      ? 'border-[#1E3A8A] bg-[#EFF6FF] text-[#1E3A8A] font-medium'
-                      : 'border-[#E5E7EB] text-[#6B7280] hover:bg-[#F9FAFB]'
-                  }`}
-                >
-                  <span className="block font-medium">{TYPE_LABELS[t]}</span>
-                  <span className="block text-xs opacity-70">
-                    {t === 'monthly' && 'Gleicher Betrag jeden Monat'}
-                    {t === 'daily' && 'Betrag × Tage im Monat'}
-                    {t === 'once' && 'Einmalig in einem bestimmten Monat'}
-                    {t === 'yearly' && 'Einmal pro Jahr im gleichen Monat'}
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div>
-            <label className="block text-xs font-medium text-[#6B7280] mb-1">
-              {form.type === 'daily' ? 'Betrag pro Tag (€)' : 'Betrag (€)'}
-            </label>
-            <input className="field" type="number" value={form.default_amount ?? ''} onChange={e => setForm(f => ({ ...f, default_amount: parseFloat(e.target.value) || 0 }))} min="0" step="0.01" />
-          </div>
-
-          {form.type === 'once' && (
-            <div>
-              <label className="block text-xs font-medium text-[#6B7280] mb-1">In welchem Monat?</label>
-              <input
-                type="month"
-                className="field"
-                value={form.once_month?.slice(0, 7) ?? ''}
-                onChange={e => setForm(f => ({ ...f, once_month: e.target.value ? e.target.value + '-01' : null }))}
-              />
-            </div>
-          )}
-
-          {form.type === 'yearly' && (
-            <div>
-              <label className="block text-xs font-medium text-[#6B7280] mb-1">In welchem Monat jedes Jahr?</label>
-              <select className="field" value={form.yearly_month ?? ''} onChange={e => setForm(f => ({ ...f, yearly_month: parseInt(e.target.value) || null }))}>
-                <option value="">Monat wählen…</option>
-                {MONTH_NAMES.map((m, i) => <option key={i + 1} value={i + 1}>{m}</option>)}
-              </select>
-            </div>
-          )}
 
           <div className="flex gap-2 pt-1">
             <button onClick={submit} disabled={saving || !form.name} className="btn-primary flex-1">

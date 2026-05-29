@@ -92,6 +92,13 @@ function computeExpenseAmount(
   overrideAmount?: number
 ): number {
   const base = overrideAmount !== undefined ? n(overrideAmount) : n(category.default_amount)
+  // Respect start_month: monthly/daily don't apply before the configured start
+  if (
+    category.start_month &&
+    (category.type === 'monthly' || category.type === 'daily') &&
+    monthDateStr.slice(0, 7) < category.start_month.slice(0, 7)
+  ) return 0
+
   switch (category.type) {
     case 'monthly':
       return base

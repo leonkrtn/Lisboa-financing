@@ -17,8 +17,9 @@ export interface ExpenseCategory {
   name: string
   type: 'monthly' | 'daily' | 'once' | 'yearly'
   default_amount: number
-  once_month: string | null  // YYYY-MM-DD
+  once_month: string | null    // YYYY-MM-DD
   yearly_month: number | null  // 1–12
+  start_month: string | null   // YYYY-MM-DD — monthly/daily: applies from this month onwards
 }
 
 export interface CapitalItem {
