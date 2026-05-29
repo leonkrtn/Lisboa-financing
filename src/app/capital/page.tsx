@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import type { CapitalItem } from '@/types'
 import { fmt, calculateNetCapital } from '@/lib/calculations'
 
@@ -22,6 +22,7 @@ export default function CapitalPage() {
   const [newName, setNewName] = useState('')
   const [newAmount, setNewAmount] = useState('')
   const [saving, setSaving] = useState(false)
+  const amountRef = useRef<HTMLInputElement>(null)
 
   const fetchItems = useCallback(async () => {
     const r = await fetch('/api/capital-items')
@@ -110,7 +111,7 @@ export default function CapitalPage() {
             return (
               <button
                 key={cat.key}
-                onClick={() => setActiveTab(cat.key)}
+                onClick={() => { setActiveTab(cat.key); setNewName(''); setNewAmount(''); setEditingId(null) }}
                 className={`flex-1 px-3 py-3 text-sm font-medium transition-colors ${
                   activeTab === cat.key
                     ? 'border-b-2 border-[#1E3A8A] text-[#1E3A8A] bg-[#EFF6FF]'
@@ -200,27 +201,33 @@ export default function CapitalPage() {
           )}
 
           {/* Add new item */}
-          <div className="flex items-center gap-2 pt-3 border-t border-[#F3F4F6]">
+          <div className="pt-3 border-t border-[#F3F4F6] space-y-2">
             <input
-              className="field flex-1 min-w-0"
+              className="field w-full"
               value={newName}
               onChange={e => setNewName(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') addItem() }}
-              placeholder={`Neue ${activeTab}-Position…`}
+              onKeyDown={e => {
+                if (e.key === 'Enter') { e.preventDefault(); amountRef.current?.focus() }
+              }}
+              placeholder={`Name der neuen ${activeTab}-Position…`}
+              autoComplete="off"
             />
-            <input
-              className="field w-32"
-              type="number"
-              value={newAmount}
-              onChange={e => setNewAmount(e.target.value)}
-              onKeyDown={e => { if (e.key === 'Enter') addItem() }}
-              placeholder="Betrag"
-              min="0"
-              step="0.01"
-            />
-            <button onClick={addItem} disabled={saving || !newName.trim() || !newAmount} className="btn-primary whitespace-nowrap">
-              + Hinzufügen
-            </button>
+            <div className="flex items-center gap-2">
+              <input
+                ref={amountRef}
+                className="field flex-1"
+                type="number"
+                value={newAmount}
+                onChange={e => setNewAmount(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') addItem() }}
+                placeholder="Betrag (€)"
+                min="0"
+                step="0.01"
+              />
+              <button onClick={addItem} disabled={saving || !newName.trim() || !newAmount} className="btn-primary whitespace-nowrap">
+                + Hinzufügen
+              </button>
+            </div>
           </div>
         </div>
       </div>
